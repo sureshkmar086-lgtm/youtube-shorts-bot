@@ -1,0 +1,196 @@
+name: Four US Shorts Channels
+
+on:
+  schedule:
+    - cron: "17 18 * * *"
+      timezone: America/New_York
+
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: "कौन-सा चैनल चलाना है?"
+        type: choice
+        options:
+          - history
+          - psychology
+          - finance
+          - ai
+          - all
+        default: history
+
+      mode:
+        description: "पहले preflight, फिर render से टेस्ट करें"
+        type: choice
+        options:
+          - preflight
+          - render
+          - publish
+          - upload
+        default: preflight
+
+      source_run_id:
+        description: "publish के लिए preview run का ID"
+        type: string
+        required: false
+
+      source_attempt:
+        description: "publish के लिए preview attempt"
+        type: string
+        default: "1"
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  plan:
+    runs-on: ubuntu-24.04
+
+    outputs:
+      channels: ${{ steps.select.outputs.channels }}
+      enabled: ${{ steps.select.outputs.enabled }}
+
+    steps:
+      - name: Select channels
+        id: select
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          AUTOMATION_ENABLED: ${{ secrets.AUTOMATION_ENABLED }}
+          SELECTED_CHANNEL: ${{ inputs.channel || 'all' }}
+          SELECTED_MODE: ${{ inputs.mode || 'upload' }}
+          SOURCE_RUN: ${{ inputs.source_run_id }}
+          SOURCE_ATTEMPT: ${{ inputs.source_attempt || '1' }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+
+          allowed = ["history", "psychology", "finance", "ai"]
+          selected = os.environ["SELECTED_CHANNEL"]
+          mode = os.environ["SELECTED_MODE"]
+
+          if selected not in allowed + ["all"]:
+              raise SystemExit("Invalid channel")
+
+          if mode not in ["preflight", "render", "publish", "upload"]:
+              raise SystemExit("Invalid mode")
+
+          enabled = (
+              os.environ["EVENT_NAME"] != "schedule"
+              or os.environ["AUTOMATION_ENABLED"].strip().lower() == "true"
+          )
+
+          if mode == "publish":
+              if (
+                  selected == "all"
+                  or not os.environ["SOURCE_RUN"].isdigit()
+                  or not os.environ["SOURCE_ATTEMPT"].isdigit()
+              ):
+                  raise SystemExit(
+                      "publish requires one channel, source_run_id and source_attempt"
+                  )
+
+          chosen = allowed if selected == "all" else [selected]
+          channels = [{"id": x, "suffix": x.upper()} for x in chosen]
+
+          with open(os.environ["GITHUB_OUTPUT"], "a") as stream:
+              stream.write("channels=" + json.dumps(channels) + "\n")
+              stream.write("enabled=" + str(enabled).lower() + "\n")
+          PY
+
+  channel:
+    needs: plan
+    if: needs.plan.outputs.enabled == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        channel: ${{ fromJSON(needs.plan.outputs.channels) }}
+
+    concurrency:
+      group: shorts-${{ github.repository }}-${{ matrix.channel.id }}
+      cancel-in-progress: false
+
+    env:
+      CHANNEL_KEY: ${{ matrix.channel.id }}
+      MODE: ${{ inputs.mode || 'upload' }}
+
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      DEEPGRAM_API_KEY: ${{ secrets.DEEPGRAM_API_KEY }}
+      PIXABAY_API_KEY: ${{ secrets.PIXABAY_API_KEY }}
+      TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
+
+      YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
+      YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
+
+      YT_REFRESH_TOKEN: ${{ secrets[format('YT_REFRESH_TOKEN_{0}', matrix.channel.suffix)] }}
+      YT_CHANNEL_ID: ${{ secrets[format('YT_CHANNEL_ID_{0}', matrix.channel.suffix)] }}
+
+      YT_PRIVACY: ${{ secrets.YT_PRIVACY || 'private' }}
+      TTS_PROVIDER: ${{ secrets.TTS_PROVIDER || 'deepgram' }}
+
+      GEMINI_MODEL: ${{ vars.GEMINI_MODEL || 'gemini-3.8-flash' }}
+      VISUAL_MODE: video_preferred
+
+      FONT_PATH: /usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf
+      MUSIC_PATH: assets/${{ matrix.channel.id }}/music.mp3
+
+    steps:
+      - name: Download repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Restore Pixabay search cache
+        uses: actions/cache@v4
+        with:
+          path: .cache/pixabay
+          key: pixabay-${{ matrix.channel.id }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            pixabay-${{ matrix.channel.id }}-
+
+      - name: Install video tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends ffmpeg fonts-dejavu-core
+
+      - name: Install Python libraries
+        run: python -m pip install -r requirements.txt
+
+      - name: Run checks or create video
+        if: inputs.mode != 'publish'
+        run: python agent_bot.py
+
+      - name: Download reviewed preview
+        if: inputs.mode == 'publish'
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.source_run_id }}
+          name: ${{ matrix.channel.id }}-${{ inputs.source_run_id }}-${{ inputs.source_attempt || '1' }}
+          path: output/${{ matrix.channel.id }}
+
+      - name: Upload reviewed video
+        if: inputs.mode == 'publish'
+        run: python agent_bot.py
+
+      - name: Save video and reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.channel.id }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            output/${{ matrix.channel.id }}/short.mp4
+            output/${{ matrix.channel.id }}/*.json
+            output/${{ matrix.channel.id }}/*.srt
+          retention-days: 1
+          if-no-files-found: ignore
