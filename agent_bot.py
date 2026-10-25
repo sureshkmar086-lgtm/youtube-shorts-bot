@@ -13,6 +13,7 @@ import re
 import socket
 import subprocess
 import time
+import wave
 from datetime import datetime
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -407,8 +408,41 @@ SOURCES: {json.dumps(sources, ensure_ascii=False)}
 def normalized(text):
     return re.sub(r'[^a-z0-9]+', '', text.lower())
 
+def voice_duration(path):
+    with wave.open(str(path), 'rb') as audio:
+        if audio.getnchannels() != 1 or audio.getsampwidth() != 2 or audio.getframerate() != 48000:
+            raise RuntimeError('Canonical speech must be mono 48 kHz PCM16 WAV.')
+        duration = audio.getnframes() / audio.getframerate()
+    if duration <= 0 or not np.isfinite(duration):
+        raise RuntimeError('Speech WAV is empty or has invalid duration.')
+    return duration
+
+
+def canonical_voice(raw, target):
+    # Decode actual samples, rather than relying on compressed MP3 duration tags.
+    run_ffmpeg(['-i', str(raw), '-map', '0:a:0', '-vn', '-ac', '1', '-ar', '48000',
+                '-c:a', 'pcm_s16le', '-f', 'wav', str(target)])
+    return voice_duration(target)
+
+
+def bounded_word_times(words, duration):
+    if not words:
+        raise RuntimeError('Missing speech word timings.')
+    result, previous = [], -1.0
+    for start, end, text in words:
+        if not np.isfinite(start) or not np.isfinite(end) or not 0 <= start < end or start < previous:
+            raise RuntimeError('Invalid speech timestamps.')
+        # Allow only small boundary rounding, never stretch audio or invent timings.
+        if start >= duration or end > duration + 0.12:
+            raise RuntimeError('Aligned word extends beyond decoded speech samples.')
+        result.append((start, min(end, duration), text))
+        previous = start
+    return result
+
+
 async def speech(text, target, config):
     provider, words = os.getenv('TTS_PROVIDER') or 'deepgram', []
+    raw = target.with_suffix('.source.mp3')
     if provider == 'deepgram':
         if len(text) > 2000:
             raise RuntimeError('Deepgram request exceeds 2000 characters.')
@@ -417,22 +451,39 @@ async def speech(text, target, config):
             params={'model': os.getenv('DEEPGRAM_MODEL') or config['voice'],
                     'encoding': 'mp3', 'bit_rate': 48000}, json={'text': text},
             timeout=(15, 120)), 'Deepgram TTS')
-        target.write_bytes(audio.content)
-        # Aura audio is aligned through STT, rather than guessed word durations.
-        with target.open('rb') as stream:
-            data = checked(HTTP.post('https://api.deepgram.com/v1/listen',
-                headers={**headers, 'Content-Type': 'audio/mpeg'}, data=stream,
-                params={'model': 'nova-3', 'language': 'en-US', 'punctuate': 'true',
-                        'smart_format': 'false'}, timeout=(15, 120)), 'Deepgram alignment').json()
-        alt = data['results']['channels'][0]['alternatives'][0]
-        if difflib.SequenceMatcher(None, normalized(text), normalized(alt.get('transcript', ''))).ratio() < 0.80:
-            raise RuntimeError('Spoken transcript differs from approved script.')
-        words = [(x['start'], x['end'], x.get('punctuated_word') or x['word']) for x in alt.get('words', [])]
+        raw.write_bytes(audio.content)
+        duration = canonical_voice(raw, target)
+        # Align the exact decoded WAV later consumed by MoviePy, not a second
+        # decoder's interpretation of the compressed source.
+        for alignment_attempt in range(2):
+            with target.open('rb') as stream:
+                data = checked(HTTP.post('https://api.deepgram.com/v1/listen',
+                    headers={**headers, 'Content-Type': 'audio/wav'}, data=stream,
+                    params={'model': 'nova-3', 'language': 'en-US', 'punctuate': 'true',
+                            'smart_format': 'false'}, timeout=(15, 120)), 'Deepgram alignment').json()
+            alt = data['results']['channels'][0]['alternatives'][0]
+            ratio = difflib.SequenceMatcher(None, normalized(text), normalized(alt.get('transcript', ''))).ratio()
+            words = [(x['start'], x['end'], x.get('punctuated_word') or x['word']) for x in alt.get('words', [])]
+            report = dict(decoded_seconds=duration, last_word_end=words[-1][1] if words else None,
+                          transcript_similarity=ratio, attempt=alignment_attempt + 1)
+            try:
+                if ratio < 0.80:
+                    raise RuntimeError('Spoken transcript differs from approved script.')
+                words = bounded_word_times(words, duration)
+                report['passed'] = True
+            except RuntimeError as exc:
+                report.update(passed=False, error=str(exc))
+                save_json(f'speech_alignment_{target.stem}_{alignment_attempt + 1}.json', report)
+                if alignment_attempt == 1:
+                    raise RuntimeError('Speech alignment failed twice; see speech_alignment reports. No upload.') from None
+                continue
+            save_json(f'speech_alignment_{target.stem}_{alignment_attempt + 1}.json', report)
+            break
     elif provider == 'edge':
         for attempt in range(3):
             words = []
             try:
-                with target.open('wb') as stream:
+                with raw.open('wb') as stream:
                     tts = edge_tts.Communicate(text, voice=os.getenv('EDGE_VOICE') or config['edge'],
                                               boundary='WordBoundary')
                     async for chunk in tts.stream():
@@ -449,13 +500,11 @@ async def speech(text, target, config):
                 await asyncio.sleep(2 ** attempt)
     else:
         raise RuntimeError('TTS_PROVIDER must be deepgram or edge.')
+    if provider == 'edge':
+        duration = canonical_voice(raw, target)
     if not target.is_file() or target.stat().st_size < 1000 or not words:
         raise RuntimeError('Missing speech or word timings.')
-    previous = -1.0
-    for start, end, _ in words:
-        if not 0 <= start < end or start < previous:
-            raise RuntimeError('Invalid speech timestamps.')
-        previous = start
+    words = bounded_word_times(words, voice_duration(target))
     return words
 
 def download(url, target, max_mb=65):
@@ -1019,13 +1068,12 @@ def render(script, config, client):
     for i, scene in enumerate(script.scenes):
         resources = []
         try:
-            path = OUT / f'voice_{i}.mp3'
+            path = OUT / f'voice_{i}.wav'
             words = asyncio.run(speech(scene.narration, path, config))
-            audio = AudioFileClip(str(path))
+            duration = voice_duration(path)
+            audio = AudioFileClip(str(path)).with_duration(duration)
             resources.append(audio)
-            duration = audio.duration
-            if words[-1][1] > duration + 0.5:
-                raise RuntimeError('Word timing exceeds speech duration.')
+            words = bounded_word_times(words, duration)
             layers = []
             visuals, visual_resources, visual_credits = scene_visuals(
                 scene, used, i, duration, config, client, archive_topic=script.topic)
