@@ -508,40 +508,79 @@ ARCHIVE_CACHE = {}
 def loc_archive_candidates(topic):
     if topic in ARCHIVE_CACHE:
         return ARCHIVE_CACHE[topic]
-    found = []
-    # Optional archive access: an outage must not cause unrelated stock selection.
-    try:
-        result = checked(HTTP.get('https://www.loc.gov/photos/',
-            params={'fo': 'json', 'q': topic, 'c': 12, 'at': 'results'},
-            timeout=(10, 30)), 'Library of Congress search').json()
-        for summary in result.get('results', [])[:8]:
-            item_url = summary.get('id', '').replace('http://', 'https://', 1)
-            if urlsplit(item_url).hostname != 'www.loc.gov' or '/item/' not in item_url:
+    found, diagnostics = [], []
+
+    def archive_json(url, params, stage):
+        # Public archive requests only. Do not log response bodies or credentials.
+        response = None
+        try:
+            response = HTTP.get(url, params=params, timeout=(10, 30))
+            response.raise_for_status()
+            payload = response.json()
+            if not isinstance(payload, dict):
+                raise ValueError('Expected JSON object')
+            return payload
+        except (requests.RequestException, ValueError) as exc:
+            status = getattr(response, 'status_code', None)
+            diagnostics.append(dict(stage=stage, url=url, http_status=status,
+                                    error_type=type(exc).__name__))
+            LOG.warning('Archive %s failed: HTTP=%s; type=%s.',
+                        stage, status, type(exc).__name__)
+            return None
+
+    result = archive_json('https://www.loc.gov/photos/',
+        {'fo': 'json', 'q': topic, 'c': 12, 'at': 'results'}, 'search') or {}
+    summaries = result.get('results') or []
+    if not isinstance(summaries, list):
+        summaries = []
+        diagnostics.append(dict(stage='search', error_type='InvalidResults'))
+    for summary in summaries[:8]:
+        if not isinstance(summary, dict):
+            continue
+        item_url = str(summary.get('id') or '').replace('http://', 'https://', 1)
+        if urlsplit(item_url).hostname != 'www.loc.gov' or '/item/' not in item_url:
+            continue
+        time.sleep(0.6)
+        payload = archive_json(item_url, {'fo': 'json', 'at': 'item'}, 'item')
+        if payload is None:
+            continue
+        record = payload.get('item') or {}
+        if not isinstance(record, dict):
+            diagnostics.append(dict(stage='item', url=item_url, error_type='InvalidItem'))
+            continue
+        raw_rights = record.get('rights_advisory') or []
+        rights = raw_rights if isinstance(raw_rights, str) else ' '.join(
+            str(value) for value in raw_rights) if isinstance(raw_rights, list) else ''
+        if not rights_permit_archive(rights):
+            diagnostics.append(dict(stage='rights', url=item_url, result='not_cleared'))
+            continue
+        urls = record.get('image_url') or summary.get('image_url') or []
+        if isinstance(urls, str):
+            urls = [urls]
+        images = []
+        for raw in urls if isinstance(urls, list) else []:
+            if not isinstance(raw, str):
                 continue
-            time.sleep(0.6)
-            record = checked(HTTP.get(item_url, params={'fo': 'json', 'at': 'item'},
-                timeout=(10, 30)), 'Library of Congress item').json().get('item', {})
-            rights = ' '.join(record.get('rights_advisory') or [])
-            if not rights_permit_archive(rights):
-                continue
-            urls = record.get('image_url') or summary.get('image_url') or []
-            images = []
-            for raw in urls:
-                link = ('https:' + raw if raw.startswith('//') else raw).split('#')[0]
-                if (urlsplit(link).hostname in {'tile.loc.gov', 'cdn.loc.gov', 'www.loc.gov'}
-                    and urlsplit(link).path.lower().endswith(('.jpg', '.jpeg', '.png'))):
-                    images.append(link)
-            if not images:
-                continue
-            title = record.get('title') or summary.get('title') or topic
-            found.append(dict(key='loc:' + item_url, kind='photo', link=images[-1],
-                archive=True, item=dict(pageURL=item_url, user='Library of Congress',
-                tags=title, date=record.get('date', ''), rights=rights)))
-    except (requests.RequestException, RuntimeError, ValueError, TypeError):
-        LOG.warning('Archive lookup incomplete; will use inspected stock or a documentary card.')
+            link = ('https:' + raw if raw.startswith('//') else raw).split('#')[0]
+            link = link.replace('http://', 'https://', 1)
+            if (urlsplit(link).hostname in {'tile.loc.gov', 'cdn.loc.gov', 'www.loc.gov'}
+                and urlsplit(link).path.lower().endswith(('.jpg', '.jpeg', '.png'))):
+                images.append(link)
+        if not images:
+            diagnostics.append(dict(stage='image', url=item_url, result='no_supported_image'))
+            continue
+        title = record.get('title') or summary.get('title') or topic
+        if isinstance(title, list):
+            title = ' '.join(str(value) for value in title)
+        found.append(dict(key='loc:' + item_url, kind='photo', link=images[-1],
+            archive=True, item=dict(pageURL=item_url, user='Library of Congress',
+            tags=str(title), date=record.get('date', ''), rights=rights)))
     ARCHIVE_CACHE[topic] = found
+    save_json('archive_diagnostics.json', dict(topic=topic, search_results=len(summaries),
+        accepted_images=len(found), events=diagnostics))
     save_json('archive_candidates.json', [dict(url=c['item']['pageURL'], title=c['item']['tags'],
         rights=c['item']['rights']) for c in found])
+    LOG.info('Archive lookup: %d candidates; %d diagnostic events.', len(found), len(diagnostics))
     return found
 
 
