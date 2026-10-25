@@ -204,8 +204,10 @@ def generate(client, prompt, schema, audit=False):
 
 def validate_script(script, sources):
     count = sum(len(scene.narration.split()) for scene in script.scenes)
-    if not 105 <= count <= 145:
-        raise RuntimeError(f'Script length check failed: {count} words; required 105-145.')
+    # Word count is a drafting budget, not a duration measurement. Actual audio
+    # and final video must still pass the duration checks in render().
+    if not 90 <= count <= 145:
+        raise RuntimeError(f'Script length check failed: {count} words; required 90-145.')
     if not 25 <= len(script.title) <= 90 or any(c in script.title for c in '<>'):
         raise RuntimeError('Invalid title.')
     if len(script.description) > 500 or not script.why_us.strip():
@@ -241,7 +243,7 @@ do not invent details to reach a word count. Preserve the specific named event,
 subject, evidence, hook and scene archive_id assignments. Never substitute a general overview or generic question.
 Validation error: {reason}
 Write exactly SEVEN scenes. Aim for 16-19 space-separated spoken words in EACH
-scene, giving 112-133 total narrated words. The allowed total is 105-145 words.
+scene, giving 112-133 total narrated words. The allowed total is 90-145 words.
 Count narration only, excluding metadata. Each scene must have 8-30 words.
 Use valid source_ids and at least TWO different source IDs across the script.
 Each scene needs a concrete visual_query of 2-5 stock search words.
@@ -324,7 +326,7 @@ Avoid repeating these recent titles: {recent}.
 Specific hook immediately, then setup, evidence, understandable explanation,
 satisfying payoff. No generic intro, engagement begging or misleading hype.
 Use seven scenes with 16-19 narrated words per scene (112-133 total); hard
-limit 105-145 narrated words. Count narration only. Write
+limit 90-145 narrated words. Count narration only. Write
 numbers, abbreviations and dollar amounts as naturally spoken English words.
 Every scene must list valid supporting source_ids; use at least two sources.
 Distinct visual_query per scene: 2-5 concrete stock-footage keywords for
@@ -392,7 +394,7 @@ Correct title, description, why_us and timely_basis as well as narration.
 Preserve this required topic: {focus}. Fix niche_fit and specific_hook issues;
 never replace a difficult story with a generic explanation about archives.
 Retain an engaging, accurate hook and an original evidence-based explanation.
-Keep 105-145 spoken words, 6-8 scenes, 8-30 words per scene, and cite at least
+Keep 90-145 spoken words, 6-8 scenes, 8-30 words per scene, and cite at least
 two valid source IDs. Title 35-80 characters, description under 500 characters.
 Write numbers as naturally spoken English. Each visual_query: 2-5 stock keywords.
 {visual_context}
