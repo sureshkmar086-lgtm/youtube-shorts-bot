@@ -140,10 +140,17 @@ def recent_uploads(yt):
                                        maxResults=50, pageToken=page).execute()
         ids = ','.join(x['contentDetails']['videoId'] for x in data.get('items', []))
         if ids:
-            videos.extend(yt.videos().list(part='snippet,status', id=ids).execute().get('items', []))
+            videos.extend(yt.videos().list(part='snippet,status,processingDetails', id=ids).execute().get('items', []))
         page = data.get('nextPageToken')
         if not page:
             break
+    save_json('channel_upload_status.json', dict(note='Latest up to 100 uploads visible in uploads playlist; an absent entry does not prove no upload exists.',
+        videos=[dict(video_id=v['id'], title=v.get('snippet', {}).get('title', ''),
+            upload_status=v.get('status', {}).get('uploadStatus'),
+            processing_status=v.get('processingDetails', {}).get('processingStatus'),
+            failure_reason=v.get('status', {}).get('failureReason'),
+            rejection_reason=v.get('status', {}).get('rejectionReason'),
+            privacy=v.get('status', {}).get('privacyStatus')) for v in videos]))
     return videos
 
 def allowed_host(url, domains):
@@ -1116,19 +1123,58 @@ def metadata(script, sources, credits, marker, niche):
         selfDeclaredMadeForKids=False, containsSyntheticMedia=True))
 
 def upload(yt, body):
-    request = yt.videos().insert(part='snippet,status', body=body,
-        media_body=MediaFileUpload(str(OUT / 'short.mp4'), mimetype='video/mp4',
-                                  chunksize=8 * 1024 * 1024, resumable=True))
-    save_json('upload_attempt.json', dict(started_at=datetime.now(ZoneInfo('UTC')).isoformat()))
+    # One resumable insertion only. The client retries temporary failures on
+    # this request/session and probes server progress when resuming it.
+    media = MediaFileUpload(str(OUT / 'short.mp4'), mimetype='video/mp4',
+                            chunksize=4 * 1024 * 1024, resumable=True)
+    request = yt.videos().insert(part='snippet,status', body=body, media_body=media)
+    attempt = dict(started_at=datetime.now(ZoneInfo('UTC')).isoformat(),
+                   bytes_total=(OUT / 'short.mp4').stat().st_size,
+                   acknowledged_bytes=0, session_initialized=False)
+    save_json('upload_attempt.json', attempt)
     result = None
     try:
         while result is None:
-            _, result = request.next_chunk(num_retries=0)
-    except Exception:
-        raise RuntimeError('Upload result UNCERTAIN. Check YouTube Studio before rerunning; never blindly retry.') from None
+            # Library retries reuse this request, not another videos.insert.
+            progress, result = request.next_chunk(num_retries=5)
+            attempt['session_initialized'] = bool(request.resumable_uri)
+            if progress is not None:
+                attempt['acknowledged_bytes'] = progress.resumable_progress
+                LOG.info('Upload acknowledged %d/%d bytes.',
+                         progress.resumable_progress, attempt['bytes_total'])
+            save_json('upload_attempt.json', attempt)
+        if not isinstance(result, dict) or not result.get('id'):
+            raise RuntimeError('YouTube returned no completed video ID.')
+    except Exception as exc:
+        # Do not expose tokens, resumable URLs, raw response bodies or exception
+        # messages. These URLs can authorize further writes to the session.
+        status = getattr(getattr(exc, 'resp', None), 'status', None)
+        reasons = []
+        try:
+            payload = json.loads(getattr(exc, 'content', b'{}'))
+            for item in payload.get('error', {}).get('errors', []):
+                reason = item.get('reason', '')
+                if isinstance(reason, str) and re.fullmatch(r'[A-Za-z0-9_]{1,80}', reason):
+                    reasons.append(reason)
+        except (ValueError, TypeError, AttributeError):
+            pass
+        attempt.update(session_initialized=bool(request.resumable_uri),
+                       state='uncertain', exception_type=type(exc).__name__,
+                       http_status=status, api_reasons=reasons)
+        save_json('upload_attempt.json', attempt)
+        save_json('upload_diagnostics.json', attempt)
+        detail = f'HTTP {status}' if status is not None else type(exc).__name__
+        if reasons:
+            detail += '; ' + ', '.join(reasons)
+        raise RuntimeError('Upload not confirmed (' + detail + '). '
+            'See upload_diagnostics.json. Check Studio before any new run; '
+            'do not automatically start a replacement upload.') from None
+    attempt.update(state='completed', acknowledged_bytes=attempt['bytes_total'], video_id=result['id'])
+    save_json('upload_attempt.json', attempt)
     save_json('uploaded.json', dict(video_id=result['id'],
         url='https://www.youtube.com/watch?v=' + result['id']))
     LOG.info('Uploaded video ID: %s', result['id'])
+
 
 def file_hash(path):
     with path.open('rb') as stream:
