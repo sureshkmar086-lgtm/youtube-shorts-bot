@@ -344,7 +344,7 @@ async def speech(text, target, config):
         headers = {'Authorization': 'Token ' + required('DEEPGRAM_API_KEY')}
         audio = checked(HTTP.post('https://api.deepgram.com/v1/speak', headers=headers,
             params={'model': os.getenv('DEEPGRAM_MODEL') or config['voice'],
-                    'encoding': 'mp3', 'bit_rate': 128000}, json={'text': text},
+                    'encoding': 'mp3', 'bit_rate': 48000}, json={'text': text},
             timeout=(15, 120)), 'Deepgram TTS')
         target.write_bytes(audio.content)
         # Aura audio is aligned through STT, rather than guessed word durations.
