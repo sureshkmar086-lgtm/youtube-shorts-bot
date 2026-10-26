@@ -555,6 +555,10 @@ do not silently shift dates, locations or roles. A photograph is not proof of
 claims beyond its catalogue description and supporting written records.
 Mark unsupported or unverifiable claims false. Check secrecy, classification,
 permission, motives and causal explanations against explicit source evidence.
+Preserve the exact scope of official orders: permission to clear one location
+and a later prohibition on pursuing people elsewhere are different facts. Never
+describe an entire operation as against orders when only a later phase exceeded
+those orders; identify the supported phase or remove the claim.
 For Finance, reject quarter-only changes without a year, unsupported claims of
 recency, omitted nonprofits from household-plus-nonprofit data, and stock charts
 presented as source evidence. Do not infer causation from aggregate changes. Never approve a billion/trillion
