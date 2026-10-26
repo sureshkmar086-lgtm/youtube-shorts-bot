@@ -240,7 +240,7 @@ def generate(client, prompt, schema, audit=False):
         temperature=0.2 if audit else 0.65, max_output_tokens=7000,
         response_mime_type='application/json', response_schema=schema)
     primary = MODEL_SESSION_CHOICE or os.getenv('GEMINI_MODEL') or 'gemini-2.5-flash'
-    fallback = os.getenv('GEMINI_FALLBACK_MODEL', 'gemini-2.5-flash').strip()
+    fallback = os.getenv('GEMINI_FALLBACK_MODEL', 'gemini-3.1-flash-lite').strip()
     models = list(dict.fromkeys(m for m in [primary, fallback] if m))
     failures = []
     started = time.monotonic()
