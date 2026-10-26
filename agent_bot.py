@@ -21,7 +21,6 @@ from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
 from typing import Literal
 import edge_tts
-import httplib2
 import numpy as np
 import requests
 from google import genai
@@ -30,7 +29,7 @@ from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_httplib2 import AuthorizedHttp
 from googleapiclient.discovery import build
-from googleapiclient.http import MediaFileUpload
+from googleapiclient.http import MediaFileUpload, build_http
 from moviepy import AudioClip, AudioFileClip, CompositeVideoClip, ImageClip, VideoFileClip, VideoClip
 from PIL import Image, ImageDraw, ImageFont, ImageOps, ImageFilter
 from pydantic import BaseModel, Field
@@ -127,8 +126,12 @@ def youtube_client():
         creds.refresh(Request())
     except Exception:
         raise RuntimeError('Google refresh failed. Check client/token; reauthorize if expired or revoked.') from None
+    # Google's transport leaves 308 Resume Incomplete responses for the
+    # resumable uploader to handle; a raw httplib2.Http treats them as redirects.
+    transport = build_http()
+    transport.timeout = 90
     return build('youtube', 'v3', cache_discovery=False,
-        http=AuthorizedHttp(creds, http=httplib2.Http(timeout=90)))
+        http=AuthorizedHttp(creds, http=transport))
 
 def recent_uploads(yt):
     items = yt.channels().list(part='snippet,contentDetails', mine=True).execute().get('items', [])
