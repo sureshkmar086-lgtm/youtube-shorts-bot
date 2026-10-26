@@ -239,9 +239,10 @@ def generate(client, prompt, schema, audit=False):
         'scores, diagnoses or returns. Write original explanations; do not copy prose.'),
         temperature=0.2 if audit else 0.65, max_output_tokens=7000,
         response_mime_type='application/json', response_schema=schema)
-    primary = MODEL_SESSION_CHOICE or os.getenv('GEMINI_MODEL') or 'gemini-2.5-flash'
+    configured = os.getenv('GEMINI_MODEL') or 'gemini-2.5-flash'
+    primary = MODEL_SESSION_CHOICE or configured
     fallback = os.getenv('GEMINI_FALLBACK_MODEL', 'gemini-3.1-flash-lite').strip()
-    models = list(dict.fromkeys(m for m in [primary, fallback] if m))
+    models = list(dict.fromkeys(m for m in [primary, configured, fallback] if m))
     failures = []
     started = time.monotonic()
     for model_index, model in enumerate(models):
