@@ -292,6 +292,24 @@ def generate(client, prompt, schema, audit=False):
     save_json('model_error.json', dict(stage=schema.__name__, failures=failures))
     raise RuntimeError(f'Gemini step {schema.__name__} failed after bounded recovery; see model_error.json.') from None
 
+def normalize_order_9066(script, sources):
+    # Formatting only: never infer an order number from a model's topic/title.
+    # Require an explicit numeric identifier in the cited source evidence.
+    by_id = {s['id']: s.get('content', '') for s in sources}
+    evidence = r'\bExecutive\s+Order\s+(?:(?:No\.?|Number)\s*)?9066\b'
+    variants = (r'\bExecutive\s+Order\s+(?:9066|ninety[-\s]+0?66|'
+                r'ninety[-\s]+sixty[-\s]+six|nine[-\s]+thousand[-\s]+'
+                r'(?:and[-\s]+)?sixty[-\s]+six|nine[-\s]+zero[-\s]+six[-\s]+six)\b')
+    used = {sid for scene in script.scenes for sid in scene.source_ids}
+    if any(re.search(evidence, by_id.get(sid, ''), re.I) for sid in used):
+        for name in ('title', 'description', 'why_us', 'timely_basis'):
+            setattr(script, name, re.sub(variants, 'Executive Order 9066', getattr(script, name), flags=re.I))
+    for scene in script.scenes:
+        if any(re.search(evidence, by_id.get(sid, ''), re.I) for sid in scene.source_ids):
+            scene.narration = re.sub(variants, 'Executive Order nine zero six six', scene.narration, flags=re.I)
+    return script
+
+
 def validate_script(script, sources):
     count = sum(len(scene.narration.split()) for scene in script.scenes)
     # Word count is a drafting budget, not a duration measurement. Actual audio
@@ -302,6 +320,9 @@ def validate_script(script, sources):
         raise RuntimeError('Invalid title.')
     if len(script.description) > 500 or not script.why_us.strip():
         raise RuntimeError('Invalid description/US relevance.')
+    for text in [script.title, script.description, *(s.narration for s in script.scenes)]:
+        if re.search(r'\bExecutive Order\s+[a-z]+[-\s]+\d+\b', text, re.I):
+            raise RuntimeError('Mixed word/digit Executive Order identifier; verify the exact number from cited sources, use digits in metadata and clearly spoken digits in narration.')
     ids, used = {s['id'] for s in sources}, set()
     for scene in script.scenes:
         if not 8 <= len(scene.narration.split()) <= 30 or not scene.visual_query.strip():
@@ -335,6 +356,7 @@ def script_visual_rules(finance=False, history=False):
 def ensure_valid_script(client, script, sources, finance=False, history=False, visual_context=''):
     # At most two format/length repairs. A repaired draft still needs fact-checking.
     for attempt in range(3):
+        script = normalize_order_9066(script, sources)
         if finance:
             # Finance renders only inventory assets. Discard the unused duplicate
             # concept specification; keep every narration and numeric audit intact.
@@ -370,6 +392,9 @@ Each scene needs a concrete visual_query of 2-5 stock search words.
 Title 35-80 characters, description under 500 characters, why_us nonempty.
 Do not invent secrecy, danger, declassification, motives or causes.
 Write numbers as naturally spoken English. Return the complete Script JSON.
+Use digits for official order numbers in title/description. In narration, read
+official identifiers digit by digit, preserving every digit from the cited source.
+Never mix written words and numeric fragments such as Ninety-066.
 {script_visual_rules(finance=finance, history=history)}
 MANDATORY VISUAL INVENTORY: {visual_context}
 For format-only repair preserve the source-supported hook, payoff and meaning.
@@ -1349,6 +1374,15 @@ def history_evidence_scope_issues(script):
         aftermath = re.search(r'\b(?:vacated|aftermath|after the eviction|following the eviction)\b', context)
         if aftermath and re.search(active_fire, scene.narration, re.I):
             issues.append(f'Scene {i}: an aftermath/vacated photograph cannot illustrate an active fire. Describe the supported aftermath, or select a separately verified active-fire photo; do not transfer another image caption.')
+        # Original catalogue determines travel direction, not the generic look of luggage.
+        leaving = re.search(r'\b(?:leaving|departing(?: from)?)\s+manzanar\b', context)
+        arriving = re.search(r'\b(?:civil control stations?|assembly cent(?:er|re)s?|awaiting transport to|sent to|taken to|arriv(?:ing|al) (?:at|in)|entering)\b', scene.narration, re.I)
+        if leaving and arriving:
+            issues.append(f'Scene {i}: catalogue shows departure FROM Manzanar, not forced arrival at an assembly/control station. Narrate only the documented departure with supporting sources, or use a verified arrival photo.')
+        wartime_exhibit = ('manzanar museum' in context and str(candidate.get('item', {}).get('date', '')).startswith('194'))
+        later_redress = re.search(r'\b(?:formal apology|financial restitution|redress|civil liberties act|nineteen eighty|1988)\b', scene.narration, re.I)
+        if wartime_exhibit and later_redress:
+            issues.append(f'Scene {i}: a wartime Manzanar museum/exhibit is not a later memorial or evidence of decades-later legislative redress. Move supported redress to a diagram or use an accurately dated visual; describe this exhibit only in its documented period.')
     return issues
 
 
@@ -1384,6 +1418,11 @@ An empty, vacated or burned-out camp is NOT an active fire: reject narration
 of rising smoke/flames unless those are actually visible and the original
 catalogue supports that phase. Another source image's caption cannot establish
 the identity/date/visible action of the photo assigned here.
+Check travel direction and historical phase literally. Loading luggage while
+LEAVING a camp cannot represent forced arrival AT a camp/control station.
+Treat an exhibition inside a wartime camp as that dated exhibition, not a later
+memorial or proof of legislation/redress decades later. Verify catalogue dates
+and direction before approving generic matches such as people + luggage.
 Separate an official's preferred policy from what the institution actually did.
 For the Bonus Army, a superintendent's preference for a peaceful settlement
 does not make every police action restrained. Labels need named, properly

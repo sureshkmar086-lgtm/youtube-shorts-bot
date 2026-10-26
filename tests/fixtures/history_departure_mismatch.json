@@ -1,0 +1,112 @@
+{
+  "title": "Executive Order Ninety-066 and Japanese Internment",
+  "description": "An examination of Executive Order Ninety-066, detailing the forced removal and incarceration of Japanese Americans during World War II, camp conditions, and subsequent legislative redress decades later.",
+  "topic": "1942 Japanese American incarceration Executive Order 9066",
+  "why_us": "Explores a critical chapter of US dark history using authentic archival photographs and records from the National Archives to explain the implementation and consequences of Executive Order 9066.",
+  "timely_basis": "Maintains an evergreen educational focus on civil liberties, constitutional rights, and historical accountability.",
+  "tags": [
+    "Executive Order 9066",
+    "World War II",
+    "Japanese American Incarceration",
+    "National Archives",
+    "Manzanar",
+    "Civil Rights"
+  ],
+  "scenes": [
+    {
+      "narration": "Following the attack on Pearl Harbor, President Franklin Roosevelt issued Executive Order Ninety-066 in February 1942, authorizing military commanders to remove individuals.",
+      "visual_query": "historic document text executive order",
+      "archive_id": "a1",
+      "visual_id": "photo-1",
+      "diagram": null,
+      "source_ids": [
+        1,
+        2
+      ]
+    },
+    {
+      "narration": "Families faced immense pressure and short notice to liquidate property and abandon homes before being sent to assembly centers.",
+      "visual_query": "evacuation process steps chart",
+      "archive_id": "",
+      "visual_id": "diagram-2",
+      "diagram": {
+        "kind": "process",
+        "title": "Evacuation Process Steps",
+        "labels": [
+          "Short Notice",
+          "Property Sale",
+          "Assembly Center"
+        ],
+        "note": "Families received brief notice to arrange affairs before removal."
+      },
+      "source_ids": [
+        1,
+        3
+      ]
+    },
+    {
+      "narration": "Residents lined up outside civil control stations with stacked baggage, awaiting transport to remote inland facilities.",
+      "visual_query": "people carrying luggage transit",
+      "archive_id": "a9",
+      "visual_id": "photo-3",
+      "diagram": null,
+      "source_ids": [
+        1,
+        3
+      ]
+    },
+    {
+      "narration": "Over one hundred thousand men, women, and children were confined in isolated relocation centers surrounded by barbed wire and guards.",
+      "visual_query": "guard tower camp barbed wire",
+      "archive_id": "a12",
+      "visual_id": "photo-4",
+      "diagram": null,
+      "source_ids": [
+        2,
+        3
+      ]
+    },
+    {
+      "narration": "Internees navigated harsh desert weather and barracks life while striving to establish schools and community routines.",
+      "visual_query": "barracks winter snow landscape",
+      "archive_id": "a4",
+      "visual_id": "photo-5",
+      "diagram": null,
+      "source_ids": [
+        1,
+        3
+      ]
+    },
+    {
+      "narration": "Decades later, archival research and the commission examined the policy, evaluating impacts.",
+      "visual_query": "official review impact chart",
+      "archive_id": "",
+      "visual_id": "diagram-6",
+      "diagram": {
+        "kind": "comparison",
+        "title": "Official Review Impact",
+        "labels": [
+          "Investigation",
+          "Formal Apology",
+          "Restitution"
+        ],
+        "note": "Investigations led to government acknowledgement and redress."
+      },
+      "source_ids": [
+        2,
+        5
+      ]
+    },
+    {
+      "narration": "Federal legislation provided a formal apology and partial financial restitution to surviving individuals who had been incarcerated.",
+      "visual_query": "historic memorial sign park",
+      "archive_id": "a2",
+      "visual_id": "photo-7",
+      "diagram": null,
+      "source_ids": [
+        2,
+        3
+      ]
+    }
+  ]
+}
