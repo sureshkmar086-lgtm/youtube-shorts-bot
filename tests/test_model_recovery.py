@@ -44,6 +44,15 @@ class ModelRecoveryTests(unittest.TestCase):
         self.assertEqual(client.models.generate_content.call_count, 1)
         sleep.assert_not_called()
 
+    def test_selected_fallback_can_recover_back_to_original_model(self):
+        b.MODEL_SESSION_CHOICE = 'backup'
+        client = SimpleNamespace(models=SimpleNamespace(generate_content=Mock(
+            side_effect=[APIError(503)] * 3 + [SimpleNamespace(text='{"queries":["office desk","adult keyboard","home laptop"]}') ])))
+        with patch.dict(b.os.environ, {'GEMINI_MODEL': 'primary', 'GEMINI_FALLBACK_MODEL': 'backup'}), patch.object(b.time, 'sleep'):
+            b.generate(client, 'repair draft', b.StockSearchRepair)
+        self.assertEqual([c.kwargs['model'] for c in client.models.generate_content.call_args_list], ['backup'] * 3 + ['primary'])
+        self.assertEqual(b.MODEL_SESSION_CHOICE, 'primary')
+
     def test_persistent_outage_is_bounded_and_does_not_log_secret(self):
         client = SimpleNamespace(models=SimpleNamespace(generate_content=Mock(side_effect=APIError(503))))
         with patch.dict(b.os.environ, {'GEMINI_MODEL': 'primary', 'GEMINI_FALLBACK_MODEL': 'backup'}), patch.object(b.time, 'sleep'), self.assertRaises(RuntimeError):
