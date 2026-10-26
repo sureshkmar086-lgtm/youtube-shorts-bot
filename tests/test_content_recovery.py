@@ -113,7 +113,8 @@ class RecoveryTests(unittest.TestCase):
         def storyboard(*args):
             calls['visuals']+=1
             return ['Scene 6: peaceful camp must not portray active burning.'] if calls['visuals']==1 else []
-        with patch.object(b,'prepare_history_package',return_value=('1932 Bonus Army eviction Washington',sources,'Exact approved photo inventory')),patch.object(b,'search_sources',return_value=[]),patch.object(b,'generate',side_effect=generate),patch.object(b,'check_history_storyboard',side_effect=storyboard):
+        inventory={s.archive_id:{} for s in script.scenes if not s.diagram}
+        with patch.dict(b.HISTORY_MEDIA,inventory,clear=True),patch.object(b,'prepare_history_package',return_value=('1932 Bonus Army eviction Washington',sources,'Exact approved photo inventory')),patch.object(b,'search_sources',return_value=[]),patch.object(b,'generate',side_effect=generate),patch.object(b,'check_history_storyboard',side_effect=storyboard):
             result,_=b.make_script(None,b.CHANNELS['history'],'2026-10-26',[])
         self.assertEqual(calls,{'audits':4,'visuals':2})
         self.assertTrue(result.scenes[5].narration.startswith('Before the eviction'))

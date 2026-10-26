@@ -314,7 +314,25 @@ def validate_script(script, sources):
     if len(used) < 2 or sum(len(s.narration) for s in script.scenes) > 1800:
         raise RuntimeError('Insufficient supporting sources or narration exceeds speech budget.')
 
-def ensure_valid_script(client, script, sources, finance=False):
+def script_visual_rules(finance=False, history=False):
+    if finance:
+        return ('CURRENT NICHE: FINANCE. Every diagram MUST be null; visual_id '
+                'selects an existing reviewed photo or verified numeric graphic.')
+    return (('CURRENT NICHE: DARK HISTORY. Use exactly TWO non-null diagram objects '
+             'and at least FOUR distinct approved archive photographs. A diagram-N '
+             'identifier alone is NOT a diagram: it needs a complete supported '
+             'kind/title/labels/note object, visual_id=diagram-N where N is its '
+             'one-based scene number, and empty archive_id. Photo scenes need '
+             'a valid unique archive_id and diagram=null. ' if history else
+             'CURRENT NICHE: PSYCHOLOGY OR AI. Preserve the supplied photo/diagram plan. ')
+            + 'Concept diagrams use at most 32 words total, no digits, percentages '
+            'or dollar signs; each label at most five words/36 characters. '
+            'Every title, label and note must be supported by the cited sources. '
+            'Remove unsupported diagram wording by replacing it with a narrower '
+            'supported explanation, never by deleting a required diagram object.')
+
+
+def ensure_valid_script(client, script, sources, finance=False, history=False, visual_context=''):
     # At most two format/length repairs. A repaired draft still needs fact-checking.
     for attempt in range(3):
         if finance:
@@ -326,6 +344,10 @@ def ensure_valid_script(client, script, sources, finance=False):
         save_json('script_draft.json', script.model_dump())
         try:
             validate_script(script, sources)
+            if history:
+                structural_issues = history_plan_issues(script)
+                if structural_issues:
+                    raise RuntimeError('History visual structure: ' + '; '.join(structural_issues))
             LOG.info('Script format passed: %d words.',
                      sum(len(scene.narration.split()) for scene in script.scenes))
             return script
@@ -348,10 +370,10 @@ Each scene needs a concrete visual_query of 2-5 stock search words.
 Title 35-80 characters, description under 500 characters, why_us nonempty.
 Do not invent secrecy, danger, declassification, motives or causes.
 Write numbers as naturally spoken English. Return the complete Script JSON.
-For Finance every scene's diagram MUST be null: visual_id already selects
-the verified numeric graphic or reviewed photo. Never duplicate a data graphic
-as a concept diagram. For other niches keep concept diagrams below 32 words
-total, with NO digits, percentages or dollar signs; labels at most five words.
+{script_visual_rules(finance=finance, history=history)}
+MANDATORY VISUAL INVENTORY: {visual_context}
+For format-only repair preserve the source-supported hook, payoff and meaning.
+Do not replace a specific opening with historical background to shorten it.
 DRAFT: {script.model_dump_json()}
 SOURCES: {json.dumps(sources, ensure_ascii=False)}
 """, Script)
@@ -544,6 +566,7 @@ def make_script(client, config, day, recent):
     else:
         visual_context = prepare_general_media(client, config, sources)
     script = generate(client, f'''
+{script_visual_rules(finance=config['niche'] == 'Finance', history=config['niche'] == 'Dark History')}
 {visual_context}
 Date in New York: {day}. Niche: {config['niche']}. Audience: US adults.
 Mandatory topic focus: {focus}. Tell ONE specific event or finding, never a
@@ -587,7 +610,8 @@ picks/promised returns. AI: US companies/research; distinguish announcements
 from released features. No minors, invented quotes or copied article wording.
 SOURCE DATA: {json.dumps(sources, ensure_ascii=False)}
 ''', Script)
-    script = ensure_valid_script(client, script, sources, finance=config['niche'] == 'Finance')
+    script = ensure_valid_script(client, script, sources, finance=config['niche'] == 'Finance',
+        history=config['niche'] == 'Dark History', visual_context=visual_context)
     save_json('script.json', script.model_dump())
     sources = source_packet(sources + search_sources(script.topic + ' United States official facts', config))
     save_json('research_sources.json', sources)
@@ -691,6 +715,14 @@ Correct title, description, why_us and timely_basis as well as narration.
 Preserve this required topic: {focus}. Fix niche_fit and specific_hook issues;
 never replace a difficult story with a generic explanation about archives.
 Retain an engaging, accurate hook and an original evidence-based explanation.
+If specific_hook is false, REWRITE scene one around a source-verified concrete
+decision, consequence or contradiction from THIS event. Do not merely introduce
+the era or say that people traveled somewhere. Put background in later scenes.
+If specific_hook is already true, preserve that approved opening unless a named
+factual or scene/photo issue specifically requires changing it. Likewise preserve
+approved claims and payoff; change only what resolves the listed problems.
+If a diagram label/note is unsupported, replace that wording with an explicitly
+supported relationship from its cited source. Keep the required diagram object.
 Current repair category: {revision_kind}. For a storyboard repair, resolve the
 REJECTED scene/photo pair FIRST. A peaceful camp is not an image of tear gas,
 burning shanties or active destruction. Rewrite that scene to describe the
@@ -699,15 +731,17 @@ supported concept diagram while preserving exactly two diagrams and unique
 photos overall. Do not merely repeat the same narration under another generic
 camp photo. You MAY change visual assignments and scene wording to fix this.
 Use a narrower coherent angle instead of forcing the entire violent chronology.
-Keep 90-145 spoken words, 6-8 scenes, 8-30 words per scene, and cite at least
+Aim for 105-125 spoken words, hard limit 90-145, 6-8 scenes, 8-30 words per scene, and cite at least
 two valid source IDs. Title 35-80 characters, description under 500 characters.
 Write numbers as naturally spoken English. Each visual_query: 2-5 stock keywords.
+{script_visual_rules(finance=config['niche'] == 'Finance', history=config['niche'] == 'Dark History')}
 {visual_context}
 SCRIPT: {script.model_dump_json()}
 AUDIT: {audit.model_dump_json()}
 SOURCES: {json.dumps(sources, ensure_ascii=False)}
 """, Script)
-        script = ensure_valid_script(client, script, sources, finance=config['niche'] == 'Finance')
+        script = ensure_valid_script(client, script, sources, finance=config['niche'] == 'Finance',
+            history=config['niche'] == 'Dark History', visual_context=visual_context)
         save_json('script.json', script.model_dump())
     save_json('sources.json', [{k: v for k, v in s.items() if k != 'content'} for s in sources])
     return script, sources

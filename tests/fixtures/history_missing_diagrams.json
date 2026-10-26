@@ -1,0 +1,93 @@
+{
+  "title": "The Nineteen Thirty-Two Bonus Army Eviction",
+  "description": "An examination of the nineteen thirty-two Bonus Army march in Washington, focusing on veteran encampments, congressional rejection of bonus bills, and the subsequent military eviction ordered by federal authorities.",
+  "topic": "1932 Bonus Army eviction Washington",
+  "why_us": "Explores a significant historical event using verified archival visual evidence and historical source texts.",
+  "timely_basis": "A historical documentary adhering to strict archival source constraints.",
+  "tags": [
+    "Bonus Army",
+    "Great Depression",
+    "Washington DC",
+    "World War I veterans",
+    "Douglas MacArthur"
+  ],
+  "scenes": [
+    {
+      "narration": "During the Great Depression, impoverished World War I veterans traveled to Washington demanding early bonus payments.",
+      "visual_query": "historic shanty town camp",
+      "archive_id": "a4",
+      "visual_id": "",
+      "diagram": null,
+      "source_ids": [
+        1,
+        2
+      ]
+    },
+    {
+      "narration": "Marchers established integrated encampments near the Capitol, living in homemade shacks and lobbying Congress.",
+      "visual_query": "veterans camp tents",
+      "archive_id": "a12",
+      "visual_id": "",
+      "diagram": null,
+      "source_ids": [
+        1,
+        3
+      ]
+    },
+    {
+      "narration": "Although the House passed a bonus bill in June, the Senate decisively defeated the measure days later.",
+      "visual_query": "capitol building historic",
+      "archive_id": "a2",
+      "visual_id": "",
+      "diagram": null,
+      "source_ids": [
+        1,
+        3
+      ]
+    },
+    {
+      "narration": "Legislative rejection left thousands stranded in makeshift camps across the capital as summer conditions deteriorated.",
+      "visual_query": "veterans camp dirt road",
+      "archive_id": "",
+      "visual_id": "diagram-4",
+      "diagram": null,
+      "source_ids": [
+        1,
+        2
+      ]
+    },
+    {
+      "narration": "On July twenty-eighth, police attempted to clear abandoned buildings, leading to scuffles and fatal shootings.",
+      "visual_query": "police crowd street",
+      "archive_id": "a9",
+      "visual_id": "",
+      "diagram": null,
+      "source_ids": [
+        1,
+        3
+      ]
+    },
+    {
+      "narration": "Federal troops advanced to clear the remaining demonstrators under orders from military leadership.",
+      "visual_query": "military troops march",
+      "archive_id": "",
+      "visual_id": "diagram-6",
+      "diagram": null,
+      "source_ids": [
+        1,
+        2
+      ]
+    },
+    {
+      "narration": "Following the eviction, political fallout mounted as the nation reacted to military force used against veterans.",
+      "visual_query": "veterans camp dirt road",
+      "archive_id": "a5",
+      "visual_id": "",
+      "diagram": null,
+      "source_ids": [
+        1,
+        2
+      ]
+    }
+  ]
+}
