@@ -1,0 +1,48 @@
+name: Gemini API Diagnostic
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - scripts/gemini_probe.py
+      - tests/test_gemini_probe.py
+      - .github/workflows/gemini_diagnostic.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gemini-diagnostic-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  diagnostic:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install diagnostic libraries
+        timeout-minutes: 3
+        run: python -m pip install --disable-pip-version-check --retries 2 --timeout 30 google-genai==1.75.0 Pillow==11.3.0 pydantic==2.14.1
+      - name: Test diagnostics without credentials or API calls
+        run: python -m unittest discover -s tests -p 'test_gemini_probe.py' -v
+      - name: Run five small sequential API probes
+        if: github.event_name == 'workflow_dispatch'
+        timeout-minutes: 6
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          PYTHONUNBUFFERED: "1"
+        run: python -u scripts/gemini_probe.py
+      - name: Save redacted diagnostic results
+        if: always() && github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: gemini-diagnostic-${{ github.run_id }}-${{ github.run_attempt }}
+          path: gemini_probe_report.json
+          retention-days: 3
+          if-no-files-found: ignore
