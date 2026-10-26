@@ -82,7 +82,9 @@ jobs:
 
       - name: Offline regression checks without API keys
         if: inputs.mode != 'verify'
-        run: python -u agent_bot.py --self-test
+        run: |
+          python -u agent_bot.py --self-test
+          python -m unittest discover -s tests -p 'test_*.py' -v
 
       - name: Render all four synthetic fixtures without API keys
         if: inputs.mode == 'verify'
@@ -263,4 +265,5 @@ jobs:
             output/${{ matrix.channel.id }}/*.srt
           retention-days: 3
           if-no-files-found: ignore
+
 
