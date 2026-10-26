@@ -61,15 +61,24 @@ jobs:
           python-version: "3.12"
           cache: pip
 
-      - name: Install tools and libraries
+      - name: Install pinned Python libraries
         timeout-minutes: 5
         run: |
-          if ! command -v ffmpeg >/dev/null || ! command -v ffprobe >/dev/null || [ ! -f /usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf ]; then
-            sudo DEBIAN_FRONTEND=noninteractive apt-get update -qq
-            sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends ffmpeg fonts-dejavu-core
-          fi
-          python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt
+          python -m pip install --disable-pip-version-check --retries 2 --timeout 30 -r requirements.txt
+          python -m pip check
+
+      - name: Set up standalone FFmpeg and FFprobe
+        timeout-minutes: 5
+        uses: FedericoCarboni/setup-ffmpeg@v3
+        with:
+          ffmpeg-version: release
+
+      - name: Verify video tools and subtitle font
+        timeout-minutes: 1
+        run: |
+          ffmpeg -version
+          ffprobe -version
+          test -f /usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf
 
       - name: Offline regression checks without API keys
         if: inputs.mode != 'verify'
@@ -159,7 +168,7 @@ jobs:
 
     concurrency:
       group: shorts-${{ github.repository }}-${{ matrix.channel.id }}
-      cancel-in-progress: true
+      cancel-in-progress: false
 
     env:
       PYTHONUNBUFFERED: "1"
@@ -205,18 +214,24 @@ jobs:
           restore-keys: |
             pixabay-${{ matrix.channel.id }}-
 
-      - name: Install video tools
+      - name: Install pinned Python libraries
         timeout-minutes: 5
         run: |
-          if ! command -v ffmpeg >/dev/null || ! command -v ffprobe >/dev/null || [ ! -f /usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf ]; then
-            sudo DEBIAN_FRONTEND=noninteractive apt-get update -qq
-            sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends ffmpeg fonts-dejavu-core
-          fi
+          python -m pip install --disable-pip-version-check --retries 2 --timeout 30 -r requirements.txt
+          python -m pip check
 
-      - name: Install Python libraries
+      - name: Set up standalone FFmpeg and FFprobe
+        timeout-minutes: 5
+        uses: FedericoCarboni/setup-ffmpeg@v3
+        with:
+          ffmpeg-version: release
+
+      - name: Verify video tools and subtitle font
+        timeout-minutes: 1
         run: |
-          python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt
+          ffmpeg -version
+          ffprobe -version
+          test -f /usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf
 
       - name: Run checks or create video
         if: inputs.mode != 'publish'
@@ -248,3 +263,4 @@ jobs:
             output/${{ matrix.channel.id }}/*.srt
           retention-days: 3
           if-no-files-found: ignore
+
