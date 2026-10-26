@@ -193,7 +193,7 @@ def search_sources(query, config, recent=False):
         body['time_range'] = 'week'
     data = checked(HTTP.post('https://api.tavily.com/search',
         headers={'Authorization': 'Bearer ' + required('TAVILY_API_KEY')},
-        json=body, timeout=(15, 90)), 'Tavily').json()
+        json=body, timeout=(8, 15)), 'Tavily').json()
     results = []
     for item in data.get('results', []):
         url = item.get('url', '')
@@ -218,7 +218,7 @@ def generate(client, prompt, schema, audit=False):
     for attempt in range(3):
         try:
             response = client.models.generate_content(
-                model=os.getenv('GEMINI_MODEL') or 'gemini-3.5-flash-lite', contents=prompt, config=config)
+                model=os.getenv('GEMINI_MODEL') or 'gemini-2.5-flash', contents=prompt, config=config)
             if not response.text:
                 raise RuntimeError('Empty response')
             return schema.model_validate_json(response.text)
