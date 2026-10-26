@@ -1,3 +1,4 @@
+# Versions already used by this project; MoviePy 2 API required.
 google-genai==1.75.0
 google-api-python-client==2.201.0
 google-auth==2.62.0
@@ -9,3 +10,4 @@ numpy==2.5.4
 Pillow==11.3.0
 pydantic==2.14.1
 requests==2.34.2
+

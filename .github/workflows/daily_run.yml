@@ -1,6 +1,11 @@
 name: Four US Shorts Channels
 
 on:
+  pull_request:
+    paths:
+      - agent_bot.py
+      - requirements.txt
+      - .github/workflows/daily_run.yml
   schedule:
     - cron: "17 18 * * *"
       timezone: America/New_York
@@ -16,17 +21,19 @@ on:
           - finance
           - ai
           - all
-        default: history
+        default: all
 
       mode:
-        description: "पहले preflight, फिर render से टेस्ट करें"
+        description: "render: सभी चुने चैनलों की preview; publish: जाँची हुई preview अपलोड"
         type: choice
         options:
           - preflight
+          - status
+          - verify
           - render
           - publish
           - upload
-        default: preflight
+        default: render
 
       source_run_id:
         description: "publish के लिए preview run का ID"
@@ -43,7 +50,40 @@ permissions:
   actions: read
 
 jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install tools and pinned libraries
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends ffmpeg fonts-dejavu-core
+          python -m pip install -r requirements.txt
+      - name: Offline regression checks without API keys
+        if: github.event_name != 'pull_request' && inputs.mode != 'verify'
+        run: python agent_bot.py --self-test
+      - name: Render all four synthetic fixtures without API keys
+        if: github.event_name == 'pull_request' || inputs.mode == 'verify'
+        run: python agent_bot.py --self-test-render
+      - name: Save verification reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: offline-checks-${{ github.run_id }}-${{ github.run_attempt }}
+          path: output/**/*.json
+          retention-days: 3
+          if-no-files-found: ignore
+
   plan:
+    needs: verify
+    if: github.event_name != 'pull_request' && inputs.mode != 'verify'
     runs-on: ubuntu-24.04
 
     outputs:
@@ -72,7 +112,7 @@ jobs:
           if selected not in allowed + ["all"]:
               raise SystemExit("Invalid channel")
 
-          if mode not in ["preflight", "render", "publish", "upload"]:
+          if mode not in ["preflight", "status", "render", "publish", "upload"]:
               raise SystemExit("Invalid mode")
 
           enabled = (
@@ -82,12 +122,12 @@ jobs:
 
           if mode == "publish":
               if (
-                  selected == "all"
-                  or not os.environ["SOURCE_RUN"].isdigit()
+                  not os.environ["SOURCE_RUN"].isdigit()
                   or not os.environ["SOURCE_ATTEMPT"].isdigit()
+                  or int(os.environ["SOURCE_ATTEMPT"]) < 1
               ):
                   raise SystemExit(
-                      "publish requires one channel, source_run_id and source_attempt"
+                      "publish requires a preview source_run_id and positive source_attempt"
                   )
 
           chosen = allowed if selected == "all" else [selected]
@@ -132,20 +172,19 @@ jobs:
       YT_PRIVACY: ${{ secrets.YT_PRIVACY || 'private' }}
       TTS_PROVIDER: ${{ secrets.TTS_PROVIDER || 'deepgram' }}
 
-      GEMINI_MODEL: ${{ vars.GEMINI_MODEL || 'gemini-3.8-flash' }}
-      VISUAL_MODE: video_preferred
+      GEMINI_MODEL: ${{ vars.GEMINI_MODEL || 'gemini-3.5-flash-lite' }}
 
       FONT_PATH: /usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf
       MUSIC_PATH: assets/${{ matrix.channel.id }}/music.mp3
 
     steps:
       - name: Download repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           persist-credentials: false
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           cache: pip
@@ -172,7 +211,7 @@ jobs:
 
       - name: Download reviewed preview
         if: inputs.mode == 'publish'
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           github-token: ${{ github.token }}
           run-id: ${{ inputs.source_run_id }}
@@ -185,12 +224,13 @@ jobs:
 
       - name: Save video and reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.channel.id }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             output/${{ matrix.channel.id }}/short.mp4
             output/${{ matrix.channel.id }}/*.json
             output/${{ matrix.channel.id }}/*.srt
-          retention-days: 1
+          retention-days: 3
           if-no-files-found: ignore
+
