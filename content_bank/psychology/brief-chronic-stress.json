@@ -119,41 +119,41 @@
       {
         "key": "s1",
         "provider": "pixabay",
-        "id": 1280964,
-        "url": "https://pixabay.com/photos/happy-university-happy-students-1280964/",
-        "subject": "Adult woman at a desk with a laptop; illustrative, not a named participant.",
-        "subject_group": "laptop"
+        "id": 7303815,
+        "url": "https://pixabay.com/photos/multitasking-working-hard-stress-7303815/",
+        "subject": "Hands, laptop and notes during work; illustrative external demands, not a diagnosis.",
+        "subject_group": "work-demands"
       },
       {
         "key": "s2",
         "provider": "pixabay",
-        "id": 805769,
-        "url": "https://pixabay.com/photos/business-man-man-portrait-male-805769/",
-        "subject": "Adult man seated at a desk; illustrative, not an employee of a named organization.",
-        "subject_group": "desk"
+        "id": 4287030,
+        "url": "https://pixabay.com/photos/office-stress-work-business-4287030/",
+        "subject": "Office work and pressure; illustrative external demands, not a claim about this person.",
+        "subject_group": "work-pressure"
       },
       {
         "key": "s3",
         "provider": "pixabay",
-        "id": 7746011,
-        "url": "https://pixabay.com/photos/woman-business-office-thought-7746011/",
-        "subject": "Adult woman standing with arms crossed; illustrative, not a diagnosis or a named participant.",
-        "subject_group": "adult standing"
+        "id": 4778253,
+        "url": "https://pixabay.com/photos/burnout-work-despair-laptop-stress-4778253/",
+        "subject": "Adult at a laptop with head in hands; illustrative discomfort, no diagnosis or identified patient.",
+        "subject_group": "discomfort"
       },
       {
         "key": "s4",
         "provider": "pixabay",
-        "id": 945348,
-        "url": "https://pixabay.com/photos/office-open-space-office-room-room-945348/",
-        "subject": "Empty office workstation; illustrative workplace.",
-        "subject_group": "office"
+        "id": 4568283,
+        "url": "https://pixabay.com/photos/alarm-clock-bed-sleep-bedroom-4568283/",
+        "subject": "Bed and alarm clock; illustrative sleep context, not evidence of a sleep disorder.",
+        "subject_group": "sleep"
       }
     ]
   },
-  "plan_sha256": "ed6bc85e09f13e1c8c45fa544db53e7cd4f4921c19d03a5ce783fa73b8764ad3",
+  "plan_sha256": "d8dec5546d5593912a638defa9b497573b83c90c4f4ccbba027df2e8af5b791c",
   "approval": {
     "status": "preview",
-    "reviewer": "Source and fixed storyboard plan reviewed 2026-10-27; actual preview not yet approved",
+    "reviewer": "Contextual asset candidates selected 2026-10-27; actual new preview must pass visual review",
     "preview_run_id": null
   }
 }

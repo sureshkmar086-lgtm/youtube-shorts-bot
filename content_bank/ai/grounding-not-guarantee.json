@@ -120,41 +120,41 @@
       {
         "key": "s1",
         "provider": "pixabay",
-        "id": 1280964,
-        "url": "https://pixabay.com/photos/happy-university-happy-students-1280964/",
-        "subject": "Adult woman at a desk with a laptop; illustrative, not a named participant.",
-        "subject_group": "laptop"
+        "id": 2557468,
+        "url": "https://pixabay.com/photos/laptop-code-programming-computer-2557468/",
+        "subject": "Laptop with programming work; illustrative software use, not a real generated AI answer.",
+        "subject_group": "software"
       },
       {
         "key": "s2",
         "provider": "pixabay",
-        "id": 805769,
-        "url": "https://pixabay.com/photos/business-man-man-portrait-male-805769/",
-        "subject": "Adult man seated at a desk; illustrative, not an employee of a named organization.",
-        "subject_group": "desk"
+        "id": 5113374,
+        "url": "https://pixabay.com/photos/code-programming-javascript-5113374/",
+        "subject": "Programming code on a screen; illustrative generated-output context, not proof of a specific AI error.",
+        "subject_group": "code"
       },
       {
         "key": "s3",
         "provider": "pixabay",
         "id": 3859389,
         "url": "https://pixabay.com/photos/files-archive-organization-3859389/",
-        "subject": "Open filing cabinets containing folders; illustrative documents.",
+        "subject": "Filing cabinets and documents; illustrative source checking.",
         "subject_group": "files"
       },
       {
         "key": "s4",
         "provider": "pixabay",
-        "id": 945348,
-        "url": "https://pixabay.com/photos/office-open-space-office-room-room-945348/",
-        "subject": "Empty office workstation; illustrative workplace.",
-        "subject_group": "office"
+        "id": 1247715,
+        "url": "https://pixabay.com/photos/book-library-study-library-books-1247715/",
+        "subject": "Books and library material; illustrative consultation of source material.",
+        "subject_group": "sources"
       }
     ]
   },
-  "plan_sha256": "761a0f5e31b15b0b94e60cee5b8a0b03f12e76c585a68bb0f8c1578028503f0e",
+  "plan_sha256": "6a68f8b5860165a0dfafef9244c509e09779e89bf6c0a9dd81698ec5184b61da",
   "approval": {
     "status": "preview",
-    "reviewer": "Source and fixed storyboard plan reviewed 2026-10-27; actual preview not yet approved",
+    "reviewer": "Contextual asset candidates selected 2026-10-27; actual new preview must pass visual review",
     "preview_run_id": null
   }
 }

@@ -42,7 +42,7 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 W, H, FPS = 1080, 1920, 30
-RELEASE = '2026-10-27-fixed-content-bank'
+RELEASE = '2026-10-27-script-captions-context-visuals'
 OUT = Path('output')
 LOG = logging.getLogger('shorts')
 HTTP = requests.Session()
@@ -813,6 +813,51 @@ def bounded_word_times(words, duration):
     return result
 
 
+def script_word_times(text, recognized, duration):
+    """Use recognition only for timing; caption words come from approved text.
+
+    Small recognition substitutions are mapped within their actual timed span.
+    Missing/extra words or large differences fail rather than inventing timing.
+    """
+    recognized = bounded_word_times(recognized, duration)
+    tokens = text.split()
+    norm = lambda value: re.sub(r'[^a-z0-9]', '', value.casefold())
+    expected = [norm(t) for t in tokens]
+    observed = [norm(t[2]) for t in recognized]
+    if any(not t for t in expected + observed):
+        raise RuntimeError('Caption alignment contains unsupported empty word tokens.')
+    matcher = difflib.SequenceMatcher(None, expected, observed, autojunk=False)
+    edits = sum(max(j-i, l-k) for op,i,j,k,l in matcher.get_opcodes()
+                if op != 'equal' and ''.join(expected[i:j]) != ''.join(observed[k:l]))
+    if edits / max(len(expected), len(observed)) > 0.20:
+        raise RuntimeError('Too many speech differences for reliable script captions.')
+    aligned = []
+    for op, i, j, k, l in matcher.get_opcodes():
+        if op == 'equal':
+            aligned.extend((recognized[k+n][0], recognized[k+n][1], tokens[i+n]) for n in range(j-i))
+        elif op == 'replace' and ''.join(expected[i:j]) == ''.join(observed[k:l]):
+            # A compound/acronym may have several provider word boundaries.
+            # Match exact character coverage and retain observed span boundaries.
+            spans, offset = [], 0
+            for n in range(k, l):
+                spans.append((offset, offset + len(observed[n]), n))
+                offset += len(observed[n])
+            offset = 0
+            for n in range(i, j):
+                finish = offset + len(expected[n])
+                hits = [idx for start, end, idx in spans if start < finish and end > offset]
+                aligned.append((recognized[hits[0]][0], recognized[hits[-1]][1], tokens[n]))
+                offset = finish
+        elif op == 'replace' and j-i == l-k and j-i <= 3:
+            aligned.extend((recognized[k+n][0], recognized[k+n][1], tokens[i+n]) for n in range(j-i))
+        else:
+            raise RuntimeError('Speech word count differs from script; no guessed subtitle timing.')
+    aligned = bounded_word_times(aligned, duration)
+    if [w[2] for w in aligned] != tokens:
+        raise RuntimeError('Captions do not exactly match the approved script.')
+    return aligned
+
+
 async def speech(text, target, config):
     provider, words = os.getenv('TTS_PROVIDER') or 'deepgram', []
     raw = target.with_suffix('.source.mp3')
@@ -877,7 +922,10 @@ async def speech(text, target, config):
         duration = canonical_voice(raw, target)
     if not target.is_file() or target.stat().st_size < 1000 or not words:
         raise RuntimeError('Missing speech or word timings.')
-    words = bounded_word_times(words, voice_duration(target))
+    words = script_word_times(text, words, voice_duration(target))
+    save_json(f'caption_alignment_{target.stem}.json', dict(
+        passed=True, exact_script_words=True, word_count=len(words),
+        script_sha256=hashlib.sha256(text.encode()).hexdigest()))
     return words
 
 def download(url, target, max_mb=65):
@@ -2206,7 +2254,7 @@ def render(script, config, client):
             duration = voice_duration(path)
             audio = AudioFileClip(str(path)).with_duration(duration)
             resources.append(audio)
-            words = bounded_word_times(words, duration)
+            words = script_word_times(scene.narration, words, duration)
             layers = []
             visuals, visual_resources, visual_credits = scene_visuals(
                 scene, used, i, duration, config, client, archive_topic=script.topic)
@@ -2262,6 +2310,13 @@ def render(script, config, client):
     def stamp(value):
         ms = round(value * 1000)
         return f'{ms // 3600000:02}:{ms // 60000 % 60:02}:{ms // 1000 % 60:02},{ms % 1000:03}'
+    expected_captions = ' '.join(scene.narration for scene in script.scenes).split()
+    actual_captions = ' '.join(text for _, _, text in srt).split()
+    if actual_captions != expected_captions:
+        raise RuntimeError('Rendered captions differ from approved narration. No upload.')
+    save_json('captions_check.json', dict(passed=True, exact_script_words=True,
+        word_count=len(actual_captions),
+        script_sha256=hashlib.sha256(' '.join(expected_captions).encode()).hexdigest()))
     (OUT / 'captions.srt').write_text('\n\n'.join(
         f'{i}\n{stamp(a)} --> {stamp(b)}\n{text}' for i, (a, b, text) in enumerate(srt, 1)), encoding='utf-8')
     verified = check_short_file(OUT / 'short.mp4')
@@ -2464,7 +2519,7 @@ def file_hash(path):
 def bundle_names():
     names = ['short.mp4', 'script.json', 'fact_check.json', 'upload_metadata.json',
              'storyboard_check.json', 'shorts_check.json', 'research_sources.json',
-             'sources.json', 'credits.json', 'captions.srt', 'bank_plan.json', 'bank_assets.json']
+             'sources.json', 'credits.json', 'captions.srt', 'captions_check.json', 'bank_plan.json', 'bank_assets.json']
     if required('CHANNEL_KEY') == 'finance':
         names.extend(['numeric_check.json', 'finance_graphics.json'])
     return names
@@ -2740,7 +2795,9 @@ def self_test(render_media=False):
                 samples = (np.sin(2*np.pi*220*t)*1200).astype('<i2')
                 with wave.open(str(target),'wb') as wav:
                     wav.setnchannels(1); wav.setsampwidth(2); wav.setframerate(48000); wav.writeframes(samples.tobytes())
-                return [(0.1,.8,'OFFLINE'),(.8,1.6,'RENDER'),(1.6,2.4,'TEST')]
+                tokens = text.split()
+                step = 4.8 / len(tokens)
+                return [(0.1+i*step, 0.1+(i+0.9)*step, token) for i,token in enumerate(tokens)]
             speech = fixture_speech
             for key, config in CHANNELS.items():
                 OUT = root/key; OUT.mkdir()
