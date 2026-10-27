@@ -76,8 +76,8 @@ class AutoPipelineTests(unittest.TestCase):
         (self.out/'short.mp4').write_bytes(b'file')
         b.save_json('captions_check.json',dict(passed=True,exact_script_words=True))
         script=Mock();script.scenes=[Mock(narration='A valid claim.')]
-        def ffmpeg(args):Path(args[-1]).write_bytes(b'jpeg')
-        with patch.object(auto,'scene_audio_check',return_value={}),patch.object(b,'check_short_file'),patch.object(b,'voice_duration',return_value=5),patch.object(b,'run_ffmpeg',side_effect=ffmpeg),patch.object(b,'generate',return_value=b.VisualReview(choices=[b.VisualChoice(candidate_id=2,approved=True,reason='ok')])),patch.object(b,'storyboard_signature',return_value='hash'):
+        def ffmpeg(args):b.Image.new('RGB',(540,960),'gray').save(args[-1])
+        with patch.object(auto,'caption_cues',return_value=[(0,100,'A valid claim.')]),patch.object(auto,'scene_audio_check',return_value={}),patch.object(b,'check_short_file'),patch.object(b,'voice_duration',return_value=5),patch.object(b,'run_ffmpeg',side_effect=ffmpeg),patch.object(b,'generate',return_value=b.VisualReview(choices=[b.VisualChoice(candidate_id=2,approved=True,reason='ok')])),patch.object(b,'storyboard_signature',return_value='hash'):
             with self.assertRaises(auto.QualityRejected):auto.final_review(b,None,script)
         self.assertFalse(json.loads((self.out/'auto_quality.json').read_text())['passed'])
 
@@ -99,3 +99,23 @@ class AutoPipelineTests(unittest.TestCase):
             wav.setnchannels(1);wav.setsampwidth(2);wav.setframerate(48000)
             wav.writeframes((np.sin(np.arange(4800)*.1)*8000).astype('<i2').tobytes())
         self.assertGreater(auto.scene_audio_check(b,path)['rms'],.003)
+
+    def test_numbering_format_retries_without_accepting_missing_scenes(self):
+        (self.out/'short.mp4').write_bytes(b'file')
+        b.save_json('captions_check.json',dict(passed=True,exact_script_words=True))
+        script=Mock();script.scenes=[Mock(narration='A valid claim.')]*2
+        def ffmpeg(args):b.Image.new('RGB',(540,960),'gray').save(args[-1])
+        def verdict(ids):return b.VisualReview(choices=[b.VisualChoice(candidate_id=i,approved=True,reason='checked') for i in ids])
+        with patch.object(auto,'caption_cues',return_value=[(0,100,'A valid claim.')]),patch.object(auto,'scene_audio_check',return_value={}),patch.object(b,'check_short_file'),patch.object(b,'voice_duration',return_value=5),patch.object(b,'run_ffmpeg',side_effect=ffmpeg),patch.object(b,'generate',side_effect=[verdict([1,3]),verdict([1,2])]) as generate,patch.object(b,'storyboard_signature',return_value='hash'):
+            report=auto.final_review(b,None,script)
+            self.assertTrue(report['passed']);self.assertEqual(generate.call_count,2)
+            self.assertEqual(report['malformed_id_attempts'],[[1,3]])
+            parts=generate.call_args_list[0].args[1]
+            self.assertEqual(sum(isinstance(x,b.types.Part) for x in parts),2)
+
+    def test_caption_fragment_context_is_preserved(self):
+        path=self.out/'captions.srt'
+        path.write_text('1\n00:00:00,100 --> 00:00:01,500\nPOINT NINE TRILLION DOLLARS\n\n2\n00:00:01,500 --> 00:00:02,500\nIN HOUSEHOLD NET WORTH')
+        cues=auto.caption_cues(path)
+        self.assertEqual(cues[0],(.1,1.5,'POINT NINE TRILLION DOLLARS'))
+        self.assertEqual(next(text for a,z,text in cues if a<=1.6<z),'IN HOUSEHOLD NET WORTH')

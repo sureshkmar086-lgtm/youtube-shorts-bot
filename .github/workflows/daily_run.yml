@@ -74,6 +74,15 @@ jobs:
           python -m pip check
 
       - name: Set up standalone FFmpeg and FFprobe
+        id: ffmpeg_setup
+        continue-on-error: true
+        timeout-minutes: 5
+        uses: FedericoCarboni/setup-ffmpeg@v3
+        with:
+          ffmpeg-version: release
+
+      - name: Retry transient FFmpeg download
+        if: steps.ffmpeg_setup.outcome == 'failure'
         timeout-minutes: 5
         uses: FedericoCarboni/setup-ffmpeg@v3
         with:
@@ -229,6 +238,15 @@ jobs:
           python -m pip check
 
       - name: Set up standalone FFmpeg and FFprobe
+        id: ffmpeg_setup
+        continue-on-error: true
+        timeout-minutes: 5
+        uses: FedericoCarboni/setup-ffmpeg@v3
+        with:
+          ffmpeg-version: release
+
+      - name: Retry transient FFmpeg download
+        if: steps.ffmpeg_setup.outcome == 'failure'
         timeout-minutes: 5
         uses: FedericoCarboni/setup-ffmpeg@v3
         with:
@@ -266,7 +284,8 @@ jobs:
         with:
           name: ${{ matrix.channel.id }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
-            output/${{ matrix.channel.id }}/short.mp4
+            output/${{ matrix.channel.id }}/**/*.mp4
+            output/${{ matrix.channel.id }}/**/qa_scene*.jpg
             output/${{ matrix.channel.id }}/**/*.json
             output/${{ matrix.channel.id }}/*.srt
           retention-days: 3
