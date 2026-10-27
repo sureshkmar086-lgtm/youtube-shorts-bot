@@ -122,23 +122,47 @@
         "id": 7303815,
         "url": "https://pixabay.com/photos/multitasking-working-hard-stress-7303815/",
         "subject": "Hands, laptop and notes during work; illustrative external demands, not a diagnosis.",
-        "subject_group": "work-demands"
+        "subject_group": "work-demands",
+        "alternatives": [
+          {
+            "id": 849801,
+            "url": "https://pixabay.com/photos/laptop-notebook-startup-computer-849801/",
+            "subject": "Laptop and notebook at a workspace; illustrative work demands, no diagnosis.",
+            "subject_group": "work-demands"
+          }
+        ]
       },
       {
         "key": "s2",
         "provider": "pixabay",
-        "id": 4287030,
-        "url": "https://pixabay.com/photos/office-stress-work-business-4287030/",
-        "subject": "Office work and pressure; illustrative external demands, not a claim about this person.",
-        "subject_group": "work-pressure"
+        "id": 4233903,
+        "url": "https://pixabay.com/photos/planner-flatlay-calendar-schedule-4233903/",
+        "subject": "Open planner and keyboard; illustrative recurring external demands, not a diagnosis.",
+        "subject_group": "schedule",
+        "alternatives": [
+          {
+            "id": 258310,
+            "url": "https://pixabay.com/photos/notebook-calendar-notepad-schedule-258310/",
+            "subject": "Notebook and calendar; illustrative repeated demands and scheduling.",
+            "subject_group": "schedule"
+          }
+        ]
       },
       {
         "key": "s3",
         "provider": "pixabay",
-        "id": 4778253,
-        "url": "https://pixabay.com/photos/burnout-work-despair-laptop-stress-4778253/",
-        "subject": "Adult at a laptop with head in hands; illustrative discomfort, no diagnosis or identified patient.",
-        "subject_group": "discomfort"
+        "id": 1284248,
+        "url": "https://pixabay.com/photos/arm-hand-write-planner-planning-1284248/",
+        "subject": "Hand writing a plan in a notebook; illustrative work demands, no diagnosed person.",
+        "subject_group": "planning",
+        "alternatives": [
+          {
+            "id": 1925746,
+            "url": "https://pixabay.com/photos/notebook-pen-desk-workplace-1925746/",
+            "subject": "Notebook and pen at a desk; illustrative ongoing demands, not personal medical evidence.",
+            "subject_group": "planning"
+          }
+        ]
       },
       {
         "key": "s4",
@@ -146,14 +170,22 @@
         "id": 4568283,
         "url": "https://pixabay.com/photos/alarm-clock-bed-sleep-bedroom-4568283/",
         "subject": "Bed and alarm clock; illustrative sleep context, not evidence of a sleep disorder.",
-        "subject_group": "sleep"
+        "subject_group": "sleep",
+        "alternatives": [
+          {
+            "id": 4249699,
+            "url": "https://pixabay.com/photos/bedroom-bed-alarm-clock-sleep-4249699/",
+            "subject": "Bed and alarm clock; illustrative sleep context.",
+            "subject_group": "sleep"
+          }
+        ]
       }
     ]
   },
-  "plan_sha256": "17e7a56edfcae6c642a77e5c74ad80192428ed2ab14ed5531006d1bf619d9202",
+  "plan_sha256": "997209913acf4514f4191f63148d894202329f8a285ddcf08add275dee2b08d4",
   "approval": {
     "status": "preview",
-    "reviewer": "Contextual asset candidates selected 2026-10-27; actual new preview must pass visual review",
+    "reviewer": "Contextual non-distorted replacement candidates; automatic final-frame checks required",
     "preview_run_id": null
   }
 }

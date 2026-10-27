@@ -42,7 +42,7 @@ def eligible_items(key, day, recent, mode, root=ROOT):
         if date.fromisoformat(day) > date.fromisoformat(item['review_until']):
             continue
         approval = item.get('approval', {})
-        if approval.get('status') not in ({'preview', 'approved'} if mode == 'render' else {'approved'}):
+        if approval.get('status') not in ({'preview', 'approved'} if mode in {'render', 'auto'} else {'approved'}):
             continue
         if approval.get('status') == 'approved' and (not str(approval.get('preview_run_id', '')).isdigit() or not approval.get('reviewer')):
             raise RuntimeError('Approved bank item lacks a reviewed preview: ' + item['id'])
@@ -112,7 +112,7 @@ def exact_asset(b, asset):
     return link, item
 
 
-def prepare_assets(b, client, item, script, config):
+def prepare_assets(b, client, item, script, config, asset_variant=0):
     b.HISTORY_MEDIA.clear(); b.GENERAL_MEDIA.clear(); b.FINANCE_MEDIA.clear()
     b.HISTORY_APPROVED_SIGNATURE = b.GENERAL_APPROVED_SIGNATURE = b.FINANCE_APPROVED_SIGNATURE = None
     media = b.HISTORY_MEDIA if item['channel'] == 'history' else b.FINANCE_MEDIA if item['channel'] == 'finance' else b.GENERAL_MEDIA
@@ -121,8 +121,11 @@ def prepare_assets(b, client, item, script, config):
     keys = [a['key'] for a in item['plan']['assets']]
     if set(keys) != expected_keys or len(set(keys)) != len(keys) or any(not re.fullmatch(r'[as]\d+', key) for key in keys):
         raise ItemRejected('Pinned asset mapping does not exactly cover the fixed storyboard.')
-    asset_hashes = {}
-    for asset in item['plan']['assets']:
+    asset_hashes, selected_assets = {}, []
+    for original_asset in item['plan']['assets']:
+        alternatives = original_asset.get('alternatives', [])
+        asset = original_asset if not asset_variant or not alternatives else {**original_asset, **alternatives[0]}
+        selected_assets.append(asset)
         try:
             link, record = exact_asset(b, asset)
             raw = b.OUT / ('bank_original_' + asset['key'] + '.jpg')
@@ -144,7 +147,7 @@ def prepare_assets(b, client, item, script, config):
             raise ItemRejected('A pinned photo could not be prepared; no substitute image selected.') from None
     if item['channel'] == 'finance':
         b.add_finance_graphics(client, item['plan']['sources'])
-    b.save_json('visual_inventory.json', dict(bank_id=item['id'], exact_assets=item['plan']['assets']))
+    b.save_json('visual_inventory.json', dict(bank_id=item['id'], exact_assets=selected_assets))
     b.save_json('bank_assets.json', dict(bank_id=item['id'], sha256=asset_hashes))
 
 
@@ -176,10 +179,12 @@ SCRIPT: ''' + script.model_dump_json() + '\nSOURCES: ' + json.dumps(sources), b.
         raise ItemRejected('Fixed bank storyboard did not pass: ' + '; '.join(issues))
 
 
-def make_plan(b, client, config, day, recent, root=ROOT):
+def make_plan(b, client, config, day, recent, root=ROOT, only_id=None, asset_variant=0):
     key = b.required('CHANNEL_KEY')
     mode = b.os.getenv('MODE') or 'render'
     choices = eligible_items(key, day, recent, mode, root)
+    if only_id is not None:
+        choices = [item for item in choices if item['id'] == only_id]
     attempts = []
     if not choices:
         b.save_json('bank_selection.json', dict(status='empty', channel=key,
@@ -199,7 +204,10 @@ def make_plan(b, client, config, day, recent, root=ROOT):
             if len({urlsplit(s['url']).hostname for s in sources}) < 2:
                 raise ItemRejected('Bank needs two independent primary-source hosts.')
             b.validate_script(script, sources)
-            prepare_assets(b, client, item, script, config)
+            if asset_variant:
+                prepare_assets(b, client, item, script, config, asset_variant=asset_variant)
+            else:
+                prepare_assets(b, client, item, script, config)
             b.save_json('script.json', script.model_dump())
             b.save_json('research_sources.json', sources)
             b.save_json('sources.json', [{k: v for k, v in s.items() if k != 'content'} for s in sources])
@@ -209,7 +217,7 @@ def make_plan(b, client, config, day, recent, root=ROOT):
                 raise ItemRejected('Fixed script changed during validation.')
             attempts.append(dict(bank_id=item['id'], passed=True))
             b.save_json('bank_plan.json', dict(id=item['id'], plan_sha256=item['plan_sha256'],
-                release=b.RELEASE,
+                release=b.RELEASE, asset_variant=asset_variant,
                 script_sha256=script_hash(item['plan']),
                 approval=item['approval'], review_until=item['review_until'],
                 render_run_id=b.os.getenv('GITHUB_RUN_ID')))
@@ -230,7 +238,7 @@ def make_plan(b, client, config, day, recent, root=ROOT):
         finally:
             b.OUT = original_out
     b.save_json('bank_selection.json', dict(status='rejected', channel=key, attempts=attempts))
-    raise RuntimeError('The bounded bank candidates failed review; no speech or upload. See bank_selection.json.')
+    raise ItemRejected('The bounded bank candidates failed review; no speech or upload. See bank_selection.json.')
 
 
 def verify_approved_preview(key, directory, root=ROOT):
