@@ -20,6 +20,12 @@ class ScriptCaptionTests(unittest.TestCase):
         self.assertEqual(result[0][2], 'NIMH')
         self.assertEqual(result[-1][2], 'response.')
 
+    def test_compound_words_and_spelled_acronyms_keep_real_spans(self):
+        result = self.align('ninety-five dollars from NIMH', 'ninety five dollars from n i m h')
+        self.assertEqual([x[2] for x in result], ['ninety-five','dollars','from','NIMH'])
+        self.assertEqual(result[0][:2], (0, .7))
+        self.assertEqual(result[-1][:2], (4*.4, 7*.4+.3))
+
     def test_missing_and_extra_words_fail(self):
         for heard in ['the source is', 'the original source is checked']:
             with self.assertRaises(RuntimeError): self.align('the source is checked', heard)

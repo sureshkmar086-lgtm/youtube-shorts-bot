@@ -827,13 +827,27 @@ def script_word_times(text, recognized, duration):
     if any(not t for t in expected + observed):
         raise RuntimeError('Caption alignment contains unsupported empty word tokens.')
     matcher = difflib.SequenceMatcher(None, expected, observed, autojunk=False)
-    edits = sum(max(j-i, l-k) for op,i,j,k,l in matcher.get_opcodes() if op != 'equal')
+    edits = sum(max(j-i, l-k) for op,i,j,k,l in matcher.get_opcodes()
+                if op != 'equal' and ''.join(expected[i:j]) != ''.join(observed[k:l]))
     if edits / max(len(expected), len(observed)) > 0.20:
         raise RuntimeError('Too many speech differences for reliable script captions.')
     aligned = []
     for op, i, j, k, l in matcher.get_opcodes():
         if op == 'equal':
             aligned.extend((recognized[k+n][0], recognized[k+n][1], tokens[i+n]) for n in range(j-i))
+        elif op == 'replace' and ''.join(expected[i:j]) == ''.join(observed[k:l]):
+            # A compound/acronym may have several provider word boundaries.
+            # Match exact character coverage and retain observed span boundaries.
+            spans, offset = [], 0
+            for n in range(k, l):
+                spans.append((offset, offset + len(observed[n]), n))
+                offset += len(observed[n])
+            offset = 0
+            for n in range(i, j):
+                finish = offset + len(expected[n])
+                hits = [idx for start, end, idx in spans if start < finish and end > offset]
+                aligned.append((recognized[hits[0]][0], recognized[hits[-1]][1], tokens[n]))
+                offset = finish
         elif op == 'replace' and j-i == l-k and j-i <= 3:
             aligned.extend((recognized[k+n][0], recognized[k+n][1], tokens[i+n]) for n in range(j-i))
         else:
