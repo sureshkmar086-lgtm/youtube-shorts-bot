@@ -112,11 +112,17 @@ AI: capabilities depend on model/application; do not turn an announcement or mar
 Title 35-80 characters; description under 500; 4-8 tags; honest why_us and timely_basis.
 Visual requirements: {visual}
 PRIMARY SOURCE DATA: {json.dumps(sources,ensure_ascii=False)}'''
-    issue=''
+    domain_ids={}
+    for source in sources:
+        domain='.'.join(urlsplit(source['url']).hostname.split('.')[-2:])
+        domain_ids.setdefault(domain,[]).append(source['id'])
+    prompt+='\nCITATION REQUIREMENT: use source IDs from at least TWO DISTINCT domains in this map: '+json.dumps(domain_ids)+'. Two pages of one institution do not qualify.'
+    issue='';draft_errors=[]
     for draft_attempt in range(2):
         try:
             script=b.generate(client,prompt+issue,b.Script)
-            b.normalize_order_9066(script,sources)
+            b.save_json(f'calendar_draft_{draft_attempt+1}.json',script.model_dump())
+            script=b.ensure_valid_script(client,script,sources,finance=False,history=entry['channel']=='history',visual_context=visual)
             b.validate_script(script,sources)
             used={sid for scene in script.scenes for sid in scene.source_ids}
             roots={'.'.join(urlsplit(src['url']).hostname.split('.')[-2:]) for src in sources if src['id'] in used}
@@ -130,6 +136,8 @@ PRIMARY SOURCE DATA: {json.dumps(sources,ensure_ascii=False)}'''
             audit_plan(b,client,item,script,config)
             break
         except (ItemRejected,RuntimeError) as exc:
+            draft_errors.append(dict(attempt=draft_attempt+1,type=type(exc).__name__,reason=str(exc)[:1600]))
+            b.save_json('calendar_draft_errors.json',dict(attempts=draft_errors))
             if draft_attempt==1:
                 raise ItemRejected('Calendar draft failed both bounded editorial attempts.') from None
             issue='\nPRE-FREEZE REPAIR REQUIRED: '+str(exc)[:1200]+'. Keep the mandatory topic and source-supported facts.'
