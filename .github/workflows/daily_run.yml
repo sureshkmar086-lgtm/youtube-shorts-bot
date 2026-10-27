@@ -12,7 +12,8 @@ on:
       - requirements.txt
       - .github/workflows/daily_run.yml
   schedule:
-    - cron: "17 18 * * *"
+    - cron: "0 19 * * *"
+      timezone: "America/New_York"
   workflow_dispatch:
     inputs:
       channel:
@@ -27,9 +28,10 @@ on:
         default: all
 
       mode:
-        description: "auto: जाँच-सुधार के बाद public; render: केवल preview"
+        description: "auto: नया वीडियो; release_existing: पहले अपलोड वीडियो public; render: preview"
         type: choice
         options:
+          - release_existing
           - auto
           - preflight
           - status
@@ -145,7 +147,7 @@ jobs:
           if selected not in allowed + ["all"]:
               raise SystemExit("Invalid channel")
 
-          if mode not in ["preflight", "status", "render", "publish", "upload", "auto"]:
+          if mode not in ["preflight", "status", "render", "publish", "upload", "auto", "release_existing"]:
               raise SystemExit("Invalid mode")
 
           enabled = (
