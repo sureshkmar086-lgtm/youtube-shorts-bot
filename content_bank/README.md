@@ -70,3 +70,11 @@ encounter service failures, stale evidence or an editorial mistake; this design
 limits invention and fails closed, it does not guarantee perfect content or
 YouTube monetization. The two starter plans per channel will run out; they are
 never silently recycled.
+
+## Authorized automatic publication
+
+`MODE=auto` opts into machine-reviewed publication without the manual first-preview approval requirement. It accepts the existing fixed, unexpired preview plans; facts are not freely rewritten. Each channel tries at most two eligible plans. A render/audio failure retries rendering once; failed content or final visual quality switches to the next fixed plan in the same run. If all fail, nothing is uploaded.
+
+Final review samples two actual rendered frames per scene and checks scene coverage, captions, charts and major visual defects. Minor cosmetic imperfections are acceptable. This is a bounded automated review, not a claim that all errors are detectable. On success, one private upload is processed, then visibility is changed to public and read back. Processing, upload, or visibility failures never trigger a replacement upload. Reports: `auto_quality.json`, `auto_recovery.json`, `publication.json`.
+
+The schedule now uses auto mode, enabled by default per owner authorization. To pause scheduled jobs, set repository **variable** `AUTOMATION_ENABLED=false` (the legacy secret is no longer used). Manual `render` remains available for previews. There are only two starter plans per channel; once used or expired, the bank skips safely until new content is added. No automatic reuse of published plans.

@@ -5,6 +5,7 @@ on:
     paths:
       - agent_bot.py
       - content_bank.py
+      - auto_pipeline.py
       - tools/approve_bank.py
       - content_bank/**
       - tests/**
@@ -26,16 +27,17 @@ on:
         default: all
 
       mode:
-        description: "render: सभी चुने चैनलों की preview; publish: जाँची हुई preview अपलोड"
+        description: "auto: जाँच-सुधार के बाद public; render: केवल preview"
         type: choice
         options:
+          - auto
           - preflight
           - status
           - verify
           - render
           - publish
           - upload
-        default: render
+        default: auto
 
       source_run_id:
         description: "publish के लिए preview run का ID"
@@ -117,9 +119,9 @@ jobs:
         id: select
         env:
           EVENT_NAME: ${{ github.event_name }}
-          AUTOMATION_ENABLED: ${{ secrets.AUTOMATION_ENABLED }}
+          AUTOMATION_ENABLED: ${{ vars.AUTOMATION_ENABLED || 'true' }}
           SELECTED_CHANNEL: ${{ inputs.channel || 'all' }}
-          SELECTED_MODE: ${{ inputs.mode || 'upload' }}
+          SELECTED_MODE: ${{ inputs.mode || 'auto' }}
           SOURCE_RUN: ${{ inputs.source_run_id }}
           SOURCE_ATTEMPT: ${{ inputs.source_attempt || '1' }}
         run: |
@@ -134,7 +136,7 @@ jobs:
           if selected not in allowed + ["all"]:
               raise SystemExit("Invalid channel")
 
-          if mode not in ["preflight", "status", "render", "publish", "upload"]:
+          if mode not in ["preflight", "status", "render", "publish", "upload", "auto"]:
               raise SystemExit("Invalid mode")
 
           enabled = (
@@ -164,7 +166,7 @@ jobs:
     needs: plan
     if: needs.plan.outputs.enabled == 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 60
 
     strategy:
       fail-fast: false
@@ -179,7 +181,7 @@ jobs:
     env:
       PYTHONUNBUFFERED: "1"
       CHANNEL_KEY: ${{ matrix.channel.id }}
-      MODE: ${{ inputs.mode || 'upload' }}
+      MODE: ${{ inputs.mode || 'auto' }}
 
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       DEEPGRAM_API_KEY: ${{ secrets.DEEPGRAM_API_KEY }}
@@ -241,7 +243,7 @@ jobs:
 
       - name: Run checks or create video
         if: inputs.mode != 'publish'
-        timeout-minutes: 22
+        timeout-minutes: 50
         run: python -u agent_bot.py
 
       - name: Download reviewed preview

@@ -42,7 +42,7 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 W, H, FPS = 1080, 1920, 30
-RELEASE = '2026-10-27-script-captions-context-visuals'
+RELEASE = '2026-10-27-auto-review-public'
 OUT = Path('output')
 LOG = logging.getLogger('shorts')
 HTTP = requests.Session()
@@ -2511,6 +2511,7 @@ def upload(yt, body):
         raise RuntimeError(f'Upload COMPLETE: {result["id"]}; YouTube processing is still pending. '
             'Do not upload again. Check uploaded.json and processing_status.json later.')
 
+    return result['id']
 
 def file_hash(path):
     with path.open('rb') as stream:
@@ -2520,6 +2521,8 @@ def bundle_names():
     names = ['short.mp4', 'script.json', 'fact_check.json', 'upload_metadata.json',
              'storyboard_check.json', 'shorts_check.json', 'research_sources.json',
              'sources.json', 'credits.json', 'captions.srt', 'captions_check.json', 'bank_plan.json', 'bank_assets.json']
+    if os.getenv('MODE') == 'auto':
+        names.extend(['auto_quality.json', 'auto_recovery.json'])
     if required('CHANNEL_KEY') == 'finance':
         names.extend(['numeric_check.json', 'finance_graphics.json'])
     return names
@@ -2611,7 +2614,7 @@ def main():
     OUT = Path('output') / key
     OUT.mkdir(parents=True, exist_ok=True)
     mode = os.getenv('MODE') or 'preflight'
-    if mode not in {'preflight', 'status', 'render', 'publish', 'upload'}:
+    if mode not in {'preflight', 'status', 'render', 'publish', 'upload', 'auto'}:
         raise RuntimeError('Invalid MODE.')
     day = datetime.now(ZoneInfo('America/New_York')).date().isoformat()
     marker = f'Automation-ID: {day}'
@@ -2619,7 +2622,7 @@ def main():
     if mode in {'preflight', 'status'}:
         summary(f'{key}: preflight passed. No video generated or uploaded.')
         return
-    if mode in {'upload', 'publish'} and handle_existing_uploads(yt, recent, marker):
+    if mode in {'upload', 'publish', 'auto'} and handle_existing_uploads(yt, recent, marker):
         return
     if mode == 'publish':
         body = reviewed_metadata(day)
@@ -2644,6 +2647,22 @@ def main():
         required('DEEPGRAM_API_KEY')
     elif provider != 'edge':
         raise RuntimeError('TTS_PROVIDER must be deepgram or edge.')
+    if mode == 'auto':
+        from auto_pipeline import generate_checked, publish_checked
+        with genai.Client(api_key=required('GEMINI_API_KEY'),
+                          http_options=types.HttpOptions(timeout=120000)) as client:
+            script, sources, credits = generate_checked(sys.modules[__name__], client, config, day, recent)
+        body = metadata(script, sources, credits, marker, config['niche'])
+        plan = json.loads((OUT/'bank_plan.json').read_text())
+        body['snippet']['description'] += '\nContent-Bank-ID: ' + plan['id'] + '\nContent-Bank-Script: ' + plan['script_sha256'] + '\n'
+        body['status']['privacyStatus'] = 'public'
+        save_json('upload_metadata.json', body)
+        bundle(day)
+        if handle_existing_uploads(yt, recent_uploads(yt), marker):
+            return
+        video_id = publish_checked(sys.modules[__name__], yt, body)
+        summary(f'{key}: FINAL CHECKS PASSED; YouTube processing succeeded; PUBLIC: https://www.youtube.com/watch?v={video_id}')
+        return
     with genai.Client(api_key=required('GEMINI_API_KEY'),
                       http_options=types.HttpOptions(timeout=120000)) as client:
         try:
