@@ -119,3 +119,40 @@ class AutoPipelineTests(unittest.TestCase):
         cues=auto.caption_cues(path)
         self.assertEqual(cues[0],(.1,1.5,'POINT NINE TRILLION DOLLARS'))
         self.assertEqual(next(text for a,z,text in cues if a<=1.6<z),'IN HOUSEHOLD NET WORTH')
+
+    def test_existing_video_release_checks_owner_and_never_uploads(self):
+        yt=self.fake_yt()
+        yt.videos.return_value.list.return_value.execute.side_effect=[{'items':[{'snippet':{
+            'channelId':'expected','description':'Content-Bank-ID: confident-ai-errors'},
+            'status':{'privacyStatus':'private','uploadStatus':'processed'}}]},
+            {'items':[{'status':{'privacyStatus':'public'}}]}]
+        with patch.dict(os.environ,{'YT_CHANNEL_ID':'expected'}),patch.object(b,'upload') as upload:
+            self.assertEqual(auto.release_existing(b,yt,'ai'),auto.RECOVERY_VIDEOS['ai'])
+            upload.assert_not_called()
+
+    def test_recovery_refuses_wrong_channel(self):
+        yt=self.fake_yt();yt.videos.return_value.list.return_value.execute.return_value={'items':[{
+            'snippet':{'channelId':'wrong','description':'Content-Bank-ID: test'}}]}
+        with patch.dict(os.environ,{'YT_CHANNEL_ID':'expected'}):
+            with self.assertRaises(RuntimeError):auto.release_existing(b,yt,'ai')
+        yt.videos.return_value.update.assert_not_called()
+
+    def test_public_error_report_has_safe_reason_without_token(self):
+        yt=self.fake_yt();exc=Exception('SECRET TOKEN MUST NOT BE LOGGED')
+        exc.resp=Mock(status=403);exc.content=b'{"error":{"errors":[{"reason":"insufficientPermissions"}]}}'
+        yt.videos.return_value.update.return_value.execute.side_effect=exc
+        with self.assertRaisesRegex(RuntimeError,'youtube.force-ssl'):auto.set_public(b,yt,'video123')
+        data=(self.out/'publication.json').read_text()
+        self.assertIn('insufficientPermissions',data);self.assertNotIn('SECRET',data)
+
+    def test_scope_supports_privacy_update(self):
+        self.assertEqual(b.SCOPES,['https://www.googleapis.com/auth/youtube.force-ssl'])
+
+    def test_eastern_evening_schedule_tracks_dst(self):
+        from datetime import datetime
+        from zoneinfo import ZoneInfo
+        workflow=(Path(b.__file__).parent/'.github/workflows/daily_run.yml').read_text()
+        self.assertIn('- cron: \"0 19 * * *\"\n      timezone: \"America/New_York\"',workflow)
+        event={'timezone':'America/New_York'}
+        self.assertEqual(datetime(2026,10,27,19,tzinfo=ZoneInfo(event['timezone'])).astimezone(ZoneInfo('Asia/Kolkata')).strftime('%H:%M'),'04:30')
+        self.assertEqual(datetime(2026,11,3,19,tzinfo=ZoneInfo(event['timezone'])).astimezone(ZoneInfo('Asia/Kolkata')).strftime('%H:%M'),'05:30')

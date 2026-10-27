@@ -163,16 +163,58 @@ def publish_checked(b, yt, body):
     staged=copy.deepcopy(body)
     staged['status']['privacyStatus']='private'
     video_id=b.upload(yt,staged)  # Upload/process failure must never enter content-repair loop.
+    return set_public(b, yt, video_id)
+
+
+def set_public(b, yt, video_id):
     b.save_json('publication.json',dict(video_id=video_id,state='processed_private',requested_visibility='public'))
     try:
         yt.videos().update(part='status',body={'id':video_id,'status':{
-            'privacyStatus':'public','selfDeclaredMadeForKids':False,'containsSyntheticMedia':True}}).execute()
-        records=yt.videos().list(part='status',id=video_id).execute().get('items',[])
+            'privacyStatus':'public','selfDeclaredMadeForKids':False,'containsSyntheticMedia':True}}).execute(num_retries=3)
+        records=yt.videos().list(part='status',id=video_id).execute(num_retries=3).get('items',[])
         visibility=records[0].get('status',{}).get('privacyStatus') if records else None
-    except Exception:
-        raise RuntimeError('Video uploaded once; public visibility update is unconfirmed. Inspect Studio; do not reupload.') from None
+    except Exception as exc:
+        status=getattr(getattr(exc,'resp',None),'status',None)
+        reasons=[]
+        try:
+            import re
+            payload=json.loads(getattr(exc,'content',b'{}'))
+            reasons=[x['reason'] for x in payload.get('error',{}).get('errors',[])
+                     if re.fullmatch(r'[A-Za-z0-9_]{1,80}',x.get('reason',''))]
+        except (ValueError,TypeError,KeyError):
+            pass
+        b.save_json('publication.json',dict(video_id=video_id,state='public_update_failed',
+            http_status=status,api_reasons=reasons,exception_type=type(exc).__name__,
+            required_scope='https://www.googleapis.com/auth/youtube.force-ssl'))
+        hint=' Re-authorize this channel with youtube.force-ssl and replace its refresh token.' if status in {401,403} else ''
+        raise RuntimeError(f'Public update unconfirmed: HTTP {status}; reasons={reasons}.'+hint+
+            ' Existing video retained; do not reupload. See publication.json.') from None
     b.save_json('publication.json',dict(video_id=video_id,state='public' if visibility=='public' else 'visibility_not_public',
         requested_visibility='public',actual_visibility=visibility,url='https://www.youtube.com/watch?v='+video_id))
     if visibility!='public':
         raise RuntimeError('YouTube did not confirm public visibility; inspect publication.json and Studio. No replacement upload.')
     return video_id
+
+
+# Exact videos confirmed uploaded by run 40449573825; owner/marker checks below.
+RECOVERY_VIDEOS={'history':'jirObtBaX90','psychology':'CXrNBb8EVac',
+                 'finance':'X19MdUuRVTU','ai':'IPqabJoIMBw'}
+
+
+def release_existing(b, yt, key):
+    video_id=RECOVERY_VIDEOS[key]
+    records=yt.videos().list(part='snippet,status,processingDetails',id=video_id).execute().get('items',[])
+    if len(records)!=1:
+        raise RuntimeError('Recovery video is not accessible; no upload will be created.')
+    record=records[0]
+    if record.get('snippet',{}).get('channelId')!=b.required('YT_CHANNEL_ID'):
+        raise RuntimeError('Recovery video belongs to a different channel; stopped.')
+    if 'Content-Bank-ID: ' not in record.get('snippet',{}).get('description',''):
+        raise RuntimeError('Recovery video lacks the expected content-bank marker.')
+    if record.get('status',{}).get('privacyStatus')=='public':
+        b.save_json('publication.json',dict(video_id=video_id,state='already_public',actual_visibility='public'))
+        return video_id
+    if record.get('status',{}).get('uploadStatus')!='processed':
+        if not b.wait_for_processing(yt,video_id):
+            raise RuntimeError('Existing video is still processing; no replacement upload.')
+    return set_public(b,yt,video_id)

@@ -48,8 +48,7 @@ LOG = logging.getLogger('shorts')
 HTTP = requests.Session()
 HTTP.mount('https://', HTTPAdapter(max_retries=Retry(total=3, backoff_factor=2,
     status_forcelist=[429, 500, 502, 503, 504], allowed_methods=['GET'])))
-SCOPES = ['https://www.googleapis.com/auth/youtube.upload',
-          'https://www.googleapis.com/auth/youtube.readonly']
+SCOPES = ['https://www.googleapis.com/auth/youtube.force-ssl']
 CHANNELS = {
     'history': dict(niche='Dark History', voice='aura-2-orpheus-en',
         edge='en-US-GuyNeural', accent='#FFD166',
@@ -146,7 +145,7 @@ def youtube_client():
     try:
         creds.refresh(Request())
     except Exception:
-        raise RuntimeError('Google refresh failed. Check client/token; reauthorize if expired or revoked.') from None
+        raise RuntimeError('Google refresh failed. Reauthorize this channel with youtube.force-ssl and replace its refresh token; also check client credentials.') from None
     # Google's transport leaves 308 Resume Incomplete responses for the
     # resumable uploader to handle; a raw httplib2.Http treats them as redirects.
     transport = build_http()
@@ -2614,11 +2613,16 @@ def main():
     OUT = Path('output') / key
     OUT.mkdir(parents=True, exist_ok=True)
     mode = os.getenv('MODE') or 'preflight'
-    if mode not in {'preflight', 'status', 'render', 'publish', 'upload', 'auto'}:
+    if mode not in {'preflight', 'status', 'render', 'publish', 'upload', 'auto', 'release_existing'}:
         raise RuntimeError('Invalid MODE.')
     day = datetime.now(ZoneInfo('America/New_York')).date().isoformat()
     marker = f'Automation-ID: {day}'
     yt, recent = preflight(config, services=mode == 'preflight')
+    if mode == 'release_existing':
+        from auto_pipeline import release_existing
+        video_id = release_existing(sys.modules[__name__], yt, key)
+        summary(f'{key}: existing video PUBLIC: https://www.youtube.com/watch?v={video_id}')
+        return
     if mode in {'preflight', 'status'}:
         summary(f'{key}: preflight passed. No video generated or uploaded.')
         return
