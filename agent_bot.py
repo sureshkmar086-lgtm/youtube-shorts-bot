@@ -42,7 +42,7 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 W, H, FPS = 1080, 1920, 30
-RELEASE = '2026-10-27-scene-contact-review'
+RELEASE = '2026-10-27-month-queue-scheduled-publication'
 OUT = Path('output')
 LOG = logging.getLogger('shorts')
 HTTP = requests.Session()
@@ -2197,7 +2197,7 @@ def scene_visuals(scene, used, index, duration, config, client, archive_topic=''
         return planned_explainer_visual(scene, duration, config)
     if config['niche'] == 'Dark History':
         return planned_history_visual(scene, duration)
-    if config['niche'] == 'Finance':
+    if config['niche'] == 'Finance' and config.get('visual_mode') != 'concept':
         return planned_finance_visual(scene, duration)
     return planned_general_visual(scene, duration)
 
@@ -2239,9 +2239,9 @@ def score(t):
 def render(script, config, client):
     if config['niche'] == 'Dark History':
         require_history_plan(script)
-    if config['niche'] == 'Finance':
+    if config['niche'] == 'Finance' and config.get('visual_mode') != 'concept':
         require_finance_plan(script)
-    if config['niche'] in {'Psychology', 'AI'}:
+    if config['niche'] in {'Psychology', 'AI'} or config.get('visual_mode') == 'concept':
         require_general_plan(script)
     used, credits, srt, scene_paths = set(), [], [], []
     elapsed = 0.0
@@ -2613,7 +2613,7 @@ def main():
     OUT = Path('output') / key
     OUT.mkdir(parents=True, exist_ok=True)
     mode = os.getenv('MODE') or 'preflight'
-    if mode not in {'preflight', 'status', 'render', 'publish', 'upload', 'auto', 'release_existing'}:
+    if mode not in {'preflight', 'status', 'render', 'publish', 'upload', 'auto', 'release_existing', 'resume_today'}:
         raise RuntimeError('Invalid MODE.')
     day = datetime.now(ZoneInfo('America/New_York')).date().isoformat()
     marker = f'Automation-ID: {day}'
@@ -2626,6 +2626,15 @@ def main():
     if mode in {'preflight', 'status'}:
         summary(f'{key}: preflight passed. No video generated or uploaded.')
         return
+    if mode == 'resume_today':
+        from auto_pipeline import resume_today
+        if not resume_today(sys.modules[__name__], yt, recent, marker):
+            summary(f'{key}: no existing upload for today to resume. No generation or upload.')
+        return
+    if mode == 'auto':
+        from auto_pipeline import resume_today
+        if resume_today(sys.modules[__name__], yt, recent, marker):
+            return
     if mode in {'upload', 'publish', 'auto'} and handle_existing_uploads(yt, recent, marker):
         return
     if mode == 'publish':
@@ -2637,7 +2646,9 @@ def main():
     if not history.get('history_complete'):
         raise RuntimeError('Upload history is incomplete; cannot safely choose an unused bank item.')
     from content_bank import BankEmpty, eligible_items, make_plan
-    if not eligible_items(key, day, recent, mode):
+    from month_queue import due_entries
+    queued = due_entries(key, day, recent) if mode == 'auto' else []
+    if not queued and not eligible_items(key, day, recent, mode):
         try:
             make_plan(sys.modules[__name__], None, config, day, recent)
         except BankEmpty as exc:
@@ -2651,6 +2662,8 @@ def main():
         required('DEEPGRAM_API_KEY')
     elif provider != 'edge':
         raise RuntimeError('TTS_PROVIDER must be deepgram or edge.')
+    if queued:
+        required('TAVILY_API_KEY')
     if mode == 'auto':
         from auto_pipeline import generate_checked, publish_checked
         with genai.Client(api_key=required('GEMINI_API_KEY'),
@@ -2665,7 +2678,9 @@ def main():
         if handle_existing_uploads(yt, recent_uploads(yt), marker):
             return
         video_id = publish_checked(sys.modules[__name__], yt, body)
-        summary(f'{key}: FINAL CHECKS PASSED; YouTube processing succeeded; PUBLIC: https://www.youtube.com/watch?v={video_id}')
+        publication = json.loads((OUT/'publication.json').read_text())
+        state = publication.get('state','unknown')
+        summary(f'{key}: FINAL CHECKS PASSED; publication={state}; target={publication.get("publish_at","now")}; https://www.youtube.com/watch?v={video_id}')
         return
     with genai.Client(api_key=required('GEMINI_API_KEY'),
                       http_options=types.HttpOptions(timeout=120000)) as client:
@@ -2893,4 +2908,5 @@ if __name__ == '__main__':
         save_json('error.json', dict(type=type(exc).__name__, message=message))
         summary(f'Pipeline stopped ({type(exc).__name__}): {message}')
         raise SystemExit(1)
+
 

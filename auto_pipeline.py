@@ -120,7 +120,11 @@ def generate_checked(b, client, config, day, recent):
     """
     from content_bank import eligible_items, make_plan, BankEmpty, ItemRejected
     original = b.OUT
-    choices = eligible_items(b.required('CHANNEL_KEY'), day, recent, 'auto')[:2]
+    from month_queue import due_entries, compile_entry
+    briefs = due_entries(b.required('CHANNEL_KEY'), day, recent)
+    choices = [dict(id=e['id'], calendar_entry=e) for e in briefs]
+    choices += eligible_items(b.required('CHANNEL_KEY'), day, recent, 'auto')
+    choices = choices[:2]
     if not choices:
         raise BankEmpty('Content bank exhausted; add new plans. Nothing uploaded.')
     attempts=[]
@@ -129,7 +133,12 @@ def generate_checked(b, client, config, day, recent):
         attempt_out.mkdir(parents=True,exist_ok=True)
         b.OUT=attempt_out
         try:
-            script,sources=make_plan(b,client,config,day,recent,only_id=item['id'], asset_variant=candidate_index)
+            config.pop('visual_mode',None)
+            if item.get('calendar_entry'):
+                script,sources=compile_entry(b,client,config,day,recent,item['calendar_entry'])
+            else:
+                script,sources=make_plan(b,client,config,day,recent,only_id=item['id'], asset_variant=candidate_index)
+            frozen_script=script.model_dump_json()
             for render_attempt in range(2):
                 try:
                     credits=b.render(script,config,client)
@@ -140,6 +149,8 @@ def generate_checked(b, client, config, day, recent):
                     for pattern in ('voice_*','scene_*.mp4','joined.mp4','short.mp4','captions.srt','captions_check.json'):
                         for path in b.OUT.glob(pattern):
                             if path.is_file(): path.unlink()
+            if script.model_dump_json()!=frozen_script:
+                raise QualityRejected('Narration changed after source approval.')
             final_review(b,client,script)
             attempts.append(dict(bank_id=item['id'],passed=True,render_attempts=render_attempt+1))
             for path in b.OUT.iterdir():
@@ -168,11 +179,16 @@ def publish_checked(b, yt, body):
 
 def set_public(b, yt, video_id):
     b.save_json('publication.json',dict(video_id=video_id,state='processed_private',requested_visibility='public'))
+    from month_queue import scheduled_publish_at
+    target=scheduled_publish_at() if b.os.getenv('SCHEDULED_PUBLICATION')=='true' else None
+    desired={'privacyStatus':'private' if target else 'public','selfDeclaredMadeForKids':False,'containsSyntheticMedia':True}
+    if target:
+        desired['publishAt']=target
     try:
-        yt.videos().update(part='status',body={'id':video_id,'status':{
-            'privacyStatus':'public','selfDeclaredMadeForKids':False,'containsSyntheticMedia':True}}).execute(num_retries=3)
+        yt.videos().update(part='status',body={'id':video_id,'status':desired}).execute(num_retries=3)
         records=yt.videos().list(part='status',id=video_id).execute(num_retries=3).get('items',[])
-        visibility=records[0].get('status',{}).get('privacyStatus') if records else None
+        actual=records[0].get('status',{}) if records else {}
+        visibility=actual.get('privacyStatus')
     except Exception as exc:
         status=getattr(getattr(exc,'resp',None),'status',None)
         reasons=[]
@@ -189,6 +205,13 @@ def set_public(b, yt, video_id):
         hint=' Re-authorize this channel with youtube.force-ssl and replace its refresh token.' if status in {401,403} else ''
         raise RuntimeError(f'Public update unconfirmed: HTTP {status}; reasons={reasons}.'+hint+
             ' Existing video retained; do not reupload. See publication.json.') from None
+    if target and visibility=='private' and actual.get('publishAt'):
+        from datetime import datetime
+        parse=lambda value:datetime.fromisoformat(value.replace('Z','+00:00'))
+        if parse(actual['publishAt'])==parse(target):
+            b.save_json('publication.json',dict(video_id=video_id,state='scheduled',actual_visibility='private',
+                publish_at=target,url='https://www.youtube.com/watch?v='+video_id))
+            return video_id
     b.save_json('publication.json',dict(video_id=video_id,state='public' if visibility=='public' else 'visibility_not_public',
         requested_visibility='public',actual_visibility=visibility,url='https://www.youtube.com/watch?v='+video_id))
     if visibility!='public':
@@ -218,3 +241,27 @@ def release_existing(b, yt, key):
         if not b.wait_for_processing(yt,video_id):
             raise RuntimeError('Existing video is still processing; no replacement upload.')
     return set_public(b,yt,video_id)
+
+
+
+
+def resume_today(b, yt, recent, marker):
+    """Finish visibility of an already inserted video; never insert a duplicate."""
+    existing=[v for v in recent if marker in v.get('snippet',{}).get('description','')]
+    if not existing:
+        return False
+    if any(v.get('status',{}).get('privacyStatus')=='public' for v in existing):
+        b.summary('Today already has a public video; no duplicate created.')
+        return True
+    if len(existing)!=1 or 'Content-Bank-ID: ' not in existing[0].get('snippet',{}).get('description',''):
+        raise RuntimeError('Existing upload is ambiguous; no duplicate or unreviewed publication.')
+    video=existing[0]
+    if video.get('snippet',{}).get('channelId')!=b.required('YT_CHANNEL_ID'):
+        raise RuntimeError('Existing upload channel mismatch.')
+    if video.get('status',{}).get('privacyStatus')!='private':
+        raise RuntimeError('Existing upload is not an automated private-stage video.')
+    if video.get('status',{}).get('uploadStatus')!='processed' and not b.wait_for_processing(yt,video['id']):
+        raise RuntimeError('Existing upload is still processing; no replacement created.')
+    set_public(b,yt,video['id'])
+    b.summary('Existing upload publication resumed; no video regenerated or reuploaded.')
+    return True

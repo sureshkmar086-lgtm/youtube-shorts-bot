@@ -1,0 +1,78 @@
+name: Month Calendar Live Preview
+
+on:
+  pull_request:
+    paths:
+      - month_queue.py
+      - calendar/**
+      - tools/preview_month.py
+      - .github/workflows/month_preview.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  preview:
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        channel: [history, psychology, finance, ai]
+    env:
+      PYTHONUNBUFFERED: '1'
+      CHANNEL_KEY: ${{ matrix.channel }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      DEEPGRAM_API_KEY: ${{ secrets.DEEPGRAM_API_KEY }}
+      PIXABAY_API_KEY: ${{ secrets.PIXABAY_API_KEY }}
+      TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
+      TTS_PROVIDER: ${{ secrets.TTS_PROVIDER || 'deepgram' }}
+      GEMINI_MODEL: ${{ vars.GEMINI_MODEL || 'gemini-3.5-flash-lite' }}
+      FONT_PATH: /usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Install pinned dependencies
+        timeout-minutes: 5
+        run: python -m pip install --disable-pip-version-check --retries 2 --timeout 30 -r requirements.txt
+      - name: Install FFmpeg
+        id: ffmpeg
+        continue-on-error: true
+        timeout-minutes: 5
+        uses: FedericoCarboni/setup-ffmpeg@v3
+        with:
+          ffmpeg-version: release
+      - name: Retry FFmpeg download
+        if: steps.ffmpeg.outcome == 'failure'
+        timeout-minutes: 5
+        uses: FedericoCarboni/setup-ffmpeg@v3
+        with:
+          ffmpeg-version: release
+      - name: Verify tools
+        run: |
+          ffmpeg -version
+          ffprobe -version
+          test -f /usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf
+      - name: Live sources and video preview without YouTube credentials
+        timeout-minutes: 22
+        run: python -u tools/preview_month.py
+      - name: Save preview and diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: month-preview-${{ matrix.channel }}-${{ github.run_id }}
+          path: |
+            output/${{ matrix.channel }}/short.mp4
+            output/${{ matrix.channel }}/**/*.json
+            output/${{ matrix.channel }}/*.srt
+            output/${{ matrix.channel }}/qa_scene*.jpg
+          retention-days: 3
+          if-no-files-found: ignore

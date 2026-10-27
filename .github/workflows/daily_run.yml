@@ -6,13 +6,17 @@ on:
       - agent_bot.py
       - content_bank.py
       - auto_pipeline.py
+      - month_queue.py
+      - calendar/**
       - tools/approve_bank.py
       - content_bank/**
       - tests/**
       - requirements.txt
       - .github/workflows/daily_run.yml
   schedule:
-    - cron: "0 19 * * *"
+    - cron: "0 18 * * *"
+      timezone: "America/New_York"
+    - cron: "15 18,19,20 * * *"
       timezone: "America/New_York"
   workflow_dispatch:
     inputs:
@@ -31,6 +35,7 @@ on:
         description: "auto: नया वीडियो; release_existing: पहले अपलोड वीडियो public; render: preview"
         type: choice
         options:
+          - resume_today
           - release_existing
           - auto
           - preflight
@@ -124,12 +129,18 @@ jobs:
     outputs:
       channels: ${{ steps.select.outputs.channels }}
       enabled: ${{ steps.select.outputs.enabled }}
+      mode: ${{ steps.select.outputs.mode }}
 
     steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
       - name: Select channels
         id: select
         env:
           EVENT_NAME: ${{ github.event_name }}
+          SCHEDULE_CRON: ${{ github.event.schedule }}
           AUTOMATION_ENABLED: ${{ vars.AUTOMATION_ENABLED || 'true' }}
           SELECTED_CHANNEL: ${{ inputs.channel || 'all' }}
           SELECTED_MODE: ${{ inputs.mode || 'auto' }}
@@ -139,21 +150,32 @@ jobs:
           python - <<'PY'
           import json
           import os
+          from datetime import datetime
+          from zoneinfo import ZoneInfo
 
           allowed = ["history", "psychology", "finance", "ai"]
           selected = os.environ["SELECTED_CHANNEL"]
           mode = os.environ["SELECTED_MODE"]
+          if os.environ["EVENT_NAME"] == "schedule" and os.environ["SCHEDULE_CRON"] == "15 18,19,20 * * *":
+              mode = "resume_today"
 
           if selected not in allowed + ["all"]:
               raise SystemExit("Invalid channel")
 
-          if mode not in ["preflight", "status", "render", "publish", "upload", "auto", "release_existing"]:
+          if mode not in ["preflight", "status", "render", "publish", "upload", "auto", "release_existing", "resume_today"]:
               raise SystemExit("Invalid mode")
 
           enabled = (
               os.environ["EVENT_NAME"] != "schedule"
               or os.environ["AUTOMATION_ENABLED"].strip().lower() == "true"
           )
+
+          if os.environ["EVENT_NAME"] == "schedule":
+              calendar = json.load(open("calendar/month.json"))
+              today = datetime.now(ZoneInfo("America/New_York")).date().isoformat()
+              enabled = enabled and calendar["start_date"] <= today <= calendar["end_date"]
+              if not enabled:
+                  print("Scheduled production paused or thirty-day calendar ended.")
 
           if mode == "publish":
               if (
@@ -171,6 +193,7 @@ jobs:
           with open(os.environ["GITHUB_OUTPUT"], "a") as stream:
               stream.write("channels=" + json.dumps(channels) + "\n")
               stream.write("enabled=" + str(enabled).lower() + "\n")
+              stream.write("mode=" + mode + "\n")
           PY
 
   channel:
@@ -192,7 +215,8 @@ jobs:
     env:
       PYTHONUNBUFFERED: "1"
       CHANNEL_KEY: ${{ matrix.channel.id }}
-      MODE: ${{ inputs.mode || 'auto' }}
+      MODE: ${{ needs.plan.outputs.mode }}
+      SCHEDULED_PUBLICATION: ${{ github.event_name == 'schedule' && 'true' || 'false' }}
 
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       DEEPGRAM_API_KEY: ${{ secrets.DEEPGRAM_API_KEY }}
@@ -280,6 +304,17 @@ jobs:
         timeout-minutes: 10
         run: python -u agent_bot.py
 
+      - name: Preserve monthly audit trail
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: audit-${{ matrix.channel.id }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            output/${{ matrix.channel.id }}/**/*.json
+            output/${{ matrix.channel.id }}/*.srt
+          retention-days: 35
+          if-no-files-found: ignore
+
       - name: Save video and reports
         if: always()
         uses: actions/upload-artifact@v4
@@ -292,5 +327,6 @@ jobs:
             output/${{ matrix.channel.id }}/*.srt
           retention-days: 3
           if-no-files-found: ignore
+
 
 
