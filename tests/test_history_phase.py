@@ -16,9 +16,9 @@ class HistoryPhaseTests(unittest.TestCase):
                      'visible_context': 'People loading baggage and leaving Manzanar.'}
         with patch.dict(b.HISTORY_MEDIA, {'a9': candidate}, clear=True):
             issues = b.history_evidence_scope_issues(script)
-            self.assertTrue(any('departure FROM Manzanar' in issue for issue in issues))
+            self.assertTrue(any("explicit departure at/from 'manzanar'" in issue for issue in issues))
             script.scenes[2].narration = 'Residents loaded baggage onto a bus as they prepared to leave Manzanar.'
-            self.assertFalse(any('departure FROM Manzanar' in issue for issue in b.history_evidence_scope_issues(script)))
+            self.assertFalse(any("explicit departure at/from 'manzanar'" in issue for issue in b.history_evidence_scope_issues(script)))
 
     def test_source_backed_identifier_is_consistent_in_text_and_speech(self):
         script = self.draft()
