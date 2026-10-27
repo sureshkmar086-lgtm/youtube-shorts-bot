@@ -42,7 +42,7 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 W, H, FPS = 1080, 1920, 30
-RELEASE = '2026-10-27-auto-review-public'
+RELEASE = '2026-10-27-scene-contact-review'
 OUT = Path('output')
 LOG = logging.getLogger('shorts')
 HTTP = requests.Session()

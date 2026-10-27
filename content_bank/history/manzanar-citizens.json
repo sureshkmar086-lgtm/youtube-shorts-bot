@@ -58,7 +58,7 @@
           ]
         },
         {
-          "narration": "This Ansel Adams photograph shows people loading a bus before leaving Manzanar for relocation, not arriving there.",
+          "narration": "This Ansel Adams photograph shows people loading a bus before leaving Manzanar for relocation during the war.",
           "visual_query": "illustrative documentary context",
           "archive_id": "a9",
           "visual_id": "",
@@ -191,7 +191,7 @@
       }
     ]
   },
-  "plan_sha256": "cf11a9e8ccfd81abd432edb0a98ef0790dece3e98d63cc27b4d28889e42f1021",
+  "plan_sha256": "a96212373c74a8d8e20482aaa5e76aeb9f3e0c644f2c43b2d793e421381805d2",
   "approval": {
     "status": "preview",
     "reviewer": "Source and fixed storyboard plan reviewed 2026-10-27; actual preview not yet approved",
