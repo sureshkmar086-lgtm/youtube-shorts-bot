@@ -103,3 +103,17 @@ class MonthQueueTests(unittest.TestCase):
         with patch.object(b,'planned_general_visual',return_value='general') as general,patch.object(b,'planned_finance_visual') as numeric:
             self.assertEqual(b.scene_visuals(scene,set(),0,5,config,None),'general')
             general.assert_called_once();numeric.assert_not_called()
+
+    def test_recovery_waits_without_canceling_pending_production(self):
+        text=(ROOT/'.github/workflows/daily_run.yml').read_text()
+        self.assertIn('cancel-in-progress: false\n      queue: max',text)
+        self.assertIn('mode = "resume_today"',text)
+        self.assertIn('SCHEDULED_PUBLICATION:',text)
+
+    def test_live_preview_has_no_youtube_credentials(self):
+        workflow=(ROOT/'.github/workflows/month_preview.yml').read_text()
+        self.assertNotIn('YT_REFRESH_TOKEN',workflow)
+        self.assertNotIn('YT_CLIENT_SECRET',workflow)
+        script=(ROOT/'tools/preview_month.py').read_text()
+        self.assertNotIn('youtube_client(',script)
+        self.assertNotIn('publish_checked(',script)

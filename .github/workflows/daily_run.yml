@@ -211,6 +211,7 @@ jobs:
     concurrency:
       group: shorts-${{ github.repository }}-${{ matrix.channel.id }}
       cancel-in-progress: false
+      queue: max
 
     env:
       PYTHONUNBUFFERED: "1"
