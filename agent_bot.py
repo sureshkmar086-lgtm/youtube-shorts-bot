@@ -42,7 +42,7 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 W, H, FPS = 1080, 1920, 30
-RELEASE = '2026-10-27-catalogue-travel'
+RELEASE = '2026-10-27-fixed-content-bank'
 OUT = Path('output')
 LOG = logging.getLogger('shorts')
 HTTP = requests.Session()
@@ -58,17 +58,17 @@ CHANNELS = {
     'psychology': dict(niche='Psychology', voice='aura-2-orion-en',
         edge='en-US-JennyNeural', accent='#8EE3D5',
         query='United States psychology behavioral research findings',
-        domains=['nih.gov', 'apa.org', 'stanford.edu', 'harvard.edu', 'yale.edu', 'princeton.edu']),
+        domains=['nih.gov', 'cdc.gov', 'apa.org', 'stanford.edu', 'harvard.edu', 'yale.edu', 'princeton.edu']),
     'finance': dict(niche='Finance', voice='aura-2-odysseus-en',
         edge='en-US-GuyNeural', accent='#93C5FD',
         query='United States economy household finance latest data',
         domains=['federalreserve.gov', 'bls.gov', 'bea.gov', 'treasury.gov',
-                 'sec.gov', 'consumerfinance.gov', 'fdic.gov']),
+                 'sec.gov', 'consumerfinance.gov', 'fdic.gov', 'dallasfed.org']),
     'ai': dict(niche='AI', voice='aura-2-thalia-en',
         edge='en-US-AriaNeural', accent='#C4B5FD',
         query='United States artificial intelligence new releases research',
         domains=['openai.com', 'anthropic.com', 'blog.google', 'research.google',
-                 'ai.google.dev', 'microsoft.com', 'nvidia.com', 'ai.meta.com']),
+                 'ai.google.dev', 'microsoft.com', 'nvidia.com', 'ai.meta.com', 'nist.gov']),
 }
 
 class ExplainerSpec(BaseModel):
@@ -163,7 +163,7 @@ def recent_uploads(yt):
     LOG.info('Verified channel: %s (%s)', channel['snippet']['title'], channel['id'])
     playlist = channel['contentDetails']['relatedPlaylists']['uploads']
     videos, page = [], None
-    for _ in range(2):
+    for _ in range(20):
         data = yt.playlistItems().list(part='contentDetails', playlistId=playlist,
                                        maxResults=50, pageToken=page).execute()
         ids = ','.join(x['contentDetails']['videoId'] for x in data.get('items', []))
@@ -172,7 +172,8 @@ def recent_uploads(yt):
         page = data.get('nextPageToken')
         if not page:
             break
-    save_json('channel_upload_status.json', dict(note='Latest up to 100 uploads visible in uploads playlist; an absent entry does not prove no upload exists.',
+    save_json('channel_upload_status.json', dict(history_complete=not bool(page),
+        note='Up to 1000 visible uploads scanned; bank selection stops when this history is incomplete.',
         videos=[dict(video_id=v['id'], title=v.get('snippet', {}).get('title', ''),
             upload_status=v.get('status', {}).get('uploadStatus'),
             processing_status=v.get('processingDetails', {}).get('processingStatus'),
@@ -2463,7 +2464,7 @@ def file_hash(path):
 def bundle_names():
     names = ['short.mp4', 'script.json', 'fact_check.json', 'upload_metadata.json',
              'storyboard_check.json', 'shorts_check.json', 'research_sources.json',
-             'sources.json', 'credits.json', 'captions.srt']
+             'sources.json', 'credits.json', 'captions.srt', 'bank_plan.json', 'bank_assets.json']
     if required('CHANNEL_KEY') == 'finance':
         names.extend(['numeric_check.json', 'finance_graphics.json'])
     return names
@@ -2484,6 +2485,8 @@ def reviewed_metadata(day):
         for name in bundle_names():
             if file_hash(OUT/name) != manifest['sha256'][name]:
                 raise RuntimeError('Reviewed artifact failed integrity verification: '+name)
+        from content_bank import verify_approved_preview
+        verify_approved_preview(required('CHANNEL_KEY'), OUT)
         audit = Audit.model_validate_json((OUT / 'fact_check.json').read_text())
         script = Script.model_validate_json((OUT / 'script.json').read_text())
         sources = json.loads((OUT / 'research_sources.json').read_text())
@@ -2517,7 +2520,7 @@ def preflight(config, services=True):
             niche=config['niche'], youtube_token_verified=True, generation_services_checked=False,
             release=RELEASE))
         return yt, recent
-    for name in ['GEMINI_API_KEY', 'TAVILY_API_KEY', 'PIXABAY_API_KEY']:
+    for name in ['GEMINI_API_KEY'] + (['PIXABAY_API_KEY'] if config['niche'] != 'Dark History' else []):
         required(name)
     if (os.getenv('TTS_PROVIDER') or 'deepgram') == 'deepgram':
         required('DEEPGRAM_API_KEY')
@@ -2530,10 +2533,11 @@ def preflight(config, services=True):
         subprocess.run([tool, '-version'], check=True, capture_output=True, timeout=10)
     with genai.Client(api_key=required('GEMINI_API_KEY')) as client:
         client.models.get(model=os.getenv('GEMINI_MODEL') or 'gemini-3.5-flash-lite')
-    pixabay_search('American city')
+    if config['niche'] != 'Dark History':
+        pixabay_search('American city')
     save_json('preflight.json', dict(channel_id=required('YT_CHANNEL_ID'), niche=config['niche'],
         youtube_token_verified=True, gemini_model_accessible=True, pixabay_key_verified=True,
-        note='No speech/search generated. Deepgram/Tavily keys and balances are tested during render.'))
+        note='Fixed content-bank mode; no trend search or free-form script generation. TTS is tested during render.'))
     return yt, recent
 
 def summary(text):
@@ -2556,7 +2560,7 @@ def main():
         raise RuntimeError('Invalid MODE.')
     day = datetime.now(ZoneInfo('America/New_York')).date().isoformat()
     marker = f'Automation-ID: {day}'
-    yt, recent = preflight(config, services=mode not in {'publish','status'})
+    yt, recent = preflight(config, services=mode == 'preflight')
     if mode in {'preflight', 'status'}:
         summary(f'{key}: preflight passed. No video generated or uploaded.')
         return
@@ -2567,13 +2571,38 @@ def main():
         upload(yt, body)
         summary(f'{key}: upload COMPLETE and YouTube processing SUCCEEDED; privacy={body["status"]["privacyStatus"]}.')
         return
+    history = json.loads((OUT / 'channel_upload_status.json').read_text())
+    if not history.get('history_complete'):
+        raise RuntimeError('Upload history is incomplete; cannot safely choose an unused bank item.')
+    from content_bank import BankEmpty, eligible_items, make_plan
+    if not eligible_items(key, day, recent, mode):
+        try:
+            make_plan(sys.modules[__name__], None, config, day, recent)
+        except BankEmpty as exc:
+            summary(f'{key}: SKIPPED — {exc}')
+            return
+    required('GEMINI_API_KEY')
+    if key != 'history':
+        required('PIXABAY_API_KEY')
+    provider = os.getenv('TTS_PROVIDER') or 'deepgram'
+    if provider == 'deepgram':
+        required('DEEPGRAM_API_KEY')
+    elif provider != 'edge':
+        raise RuntimeError('TTS_PROVIDER must be deepgram or edge.')
     with genai.Client(api_key=required('GEMINI_API_KEY'),
                       http_options=types.HttpOptions(timeout=120000)) as client:
-        script, sources = make_script(client, config, day, [x['snippet']['title'] for x in recent])
+        try:
+            script, sources = make_plan(sys.modules[__name__], client, config, day, recent)
+        except BankEmpty as exc:
+            summary(f'{key}: SKIPPED — {exc}')
+            return
     with genai.Client(api_key=required('GEMINI_API_KEY'),
                       http_options=types.HttpOptions(timeout=120000)) as visual_client:
         credits = render(script, config, visual_client)
     body = metadata(script, sources, credits, marker, config['niche'])
+    bank_plan = json.loads((OUT / 'bank_plan.json').read_text())
+    body['snippet']['description'] += '\nContent-Bank-ID: ' + bank_plan['id'] + '\n'
+    body['snippet']['description'] += 'Content-Bank-Script: ' + bank_plan['script_sha256'] + '\n'
     save_json('upload_metadata.json', body)
     bundle(day)
     if mode == 'render':
