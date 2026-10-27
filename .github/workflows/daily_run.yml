@@ -4,6 +4,10 @@ on:
   pull_request:
     paths:
       - agent_bot.py
+      - content_bank.py
+      - tools/approve_bank.py
+      - content_bank/**
+      - tests/**
       - requirements.txt
       - .github/workflows/daily_run.yml
   schedule:
@@ -261,7 +265,7 @@ jobs:
           name: ${{ matrix.channel.id }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             output/${{ matrix.channel.id }}/short.mp4
-            output/${{ matrix.channel.id }}/*.json
+            output/${{ matrix.channel.id }}/**/*.json
             output/${{ matrix.channel.id }}/*.srt
           retention-days: 3
           if-no-files-found: ignore

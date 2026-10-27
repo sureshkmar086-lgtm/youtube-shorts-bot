@@ -1,0 +1,152 @@
+{
+  "schema_version": 1,
+  "id": "net-worth-not-cash",
+  "channel": "finance",
+  "review_until": "2027-01-25",
+  "plan": {
+    "script": {
+      "title": "America's Wealth Total Is Not a Cash Balance",
+      "description": "A dated Q2 2026 Federal Reserve balance-sheet explanation. National households-and-nonprofits totals are not current personal cash balances.",
+      "topic": "America's Wealth Total Is Not a Cash Balance",
+      "why_us": "US-focused educational explanation from reviewed primary sources.",
+      "timely_basis": "Dated historical evidence or evergreen explanation; no claim of a current trend.",
+      "tags": [
+        "finance",
+        "United States",
+        "explained"
+      ],
+      "scenes": [
+        {
+          "narration": "America's one hundred ninety-five point nine trillion dollars in household and nonprofit net worth was not cash, in quarter two of twenty twenty-six.",
+          "visual_query": "illustrative documentary context",
+          "archive_id": "",
+          "visual_id": "g1",
+          "diagram": null,
+          "source_ids": [
+            1
+          ]
+        },
+        {
+          "narration": "Net worth subtracts debts from assets; it is not simply cash.",
+          "visual_query": "illustrative documentary context",
+          "archive_id": "",
+          "visual_id": "s1",
+          "diagram": null,
+          "source_ids": [
+            1,
+            2
+          ]
+        },
+        {
+          "narration": "Owner-occupied real estate accounted for forty-nine point eight trillion dollars in that same quarter, within the household and nonprofit balance sheet.",
+          "visual_query": "illustrative documentary context",
+          "archive_id": "",
+          "visual_id": "g2",
+          "diagram": null,
+          "source_ids": [
+            1
+          ]
+        },
+        {
+          "narration": "Deposits are only one asset category within this much broader balance sheet.",
+          "visual_query": "illustrative documentary context",
+          "archive_id": "",
+          "visual_id": "s2",
+          "diagram": null,
+          "source_ids": [
+            1,
+            2
+          ]
+        },
+        {
+          "narration": "In quarter two of twenty twenty-six, households and nonprofits held two hundred seventeen point eight trillion dollars in assets against twenty-one point nine trillion dollars in liabilities.",
+          "visual_query": "illustrative documentary context",
+          "archive_id": "",
+          "visual_id": "g3",
+          "diagram": null,
+          "source_ids": [
+            1
+          ]
+        },
+        {
+          "narration": "These are national sector totals, not a typical worker's personal finances.",
+          "visual_query": "illustrative documentary context",
+          "archive_id": "",
+          "visual_id": "s3",
+          "diagram": null,
+          "source_ids": [
+            1
+          ]
+        },
+        {
+          "narration": "Ownership varies, so this aggregate does not show how wealth is distributed.",
+          "visual_query": "illustrative documentary context",
+          "archive_id": "",
+          "visual_id": "s4",
+          "diagram": null,
+          "source_ids": [
+            1
+          ]
+        }
+      ]
+    },
+    "sources": [
+      {
+        "id": 1,
+        "url": "https://www.federalreserve.gov/releases/z1/20260911/recent_developments.htm",
+        "title": "Reviewed primary-source evidence",
+        "content": "Table 1: Condensed household balance sheet\nTrillions of dollars\n| | 2022 | 2023 | 2024 | 2025 | 2026:Q1 | 2026:Q2 |\n| Assets | 162.8 | 175.9 | 189.5 | 203.8 | 204.7 | 217.8 |\n| Owner-occupied real estate | 41.9 | 44.7 | 46.9 | 47.9 | 48.7 | 49.8 |\n| Liabilities | 19.7 | 20.3 | 20.8 | 21.5 | 21.6 | 21.9 |\n| Net worth | 143.1 | 155.7 | 168.7 | 182.3 | 183.1 | 195.9 |\nSource: Financial Accounts of the United States, September 11, 2026.\nThe net worth of households and nonprofit organizations is assets minus liabilities. Assets include deposits, real estate and investments. Ownership is not evenly distributed. These are historical figures through June 30, 2026, not current balances.",
+        "published_date": null,
+        "evidence_kind": "editorial source summary; table rows are source data"
+      },
+      {
+        "id": 2,
+        "url": "https://www.dallasfed.org/-/media/microsites/cd/wealth/online/ch1.html",
+        "title": "Reviewed primary-source evidence",
+        "content": "Assets are what you own; liabilities are what you owe. Net worth equals assets minus liabilities. Assets can include savings, retirement plans, stocks, bonds and a home. A home value is an asset and its mortgage is a liability. Net worth is not the same thing as cash in an account.",
+        "published_date": null,
+        "evidence_kind": "editorial source summary; table rows are source data"
+      }
+    ],
+    "assets": [
+      {
+        "key": "s1",
+        "provider": "pixabay",
+        "id": 913162,
+        "url": "https://pixabay.com/photos/calculator-budget-math-pen-913162/",
+        "subject": "Calculator and pen; illustrative arithmetic.",
+        "subject_group": "calculator"
+      },
+      {
+        "key": "s2",
+        "provider": "pixabay",
+        "id": 1088855,
+        "url": "https://pixabay.com/photos/dollar-bill-hand-grass-money-cash-1088855/",
+        "subject": "US dollar bill; illustrative cash.",
+        "subject_group": "cash"
+      },
+      {
+        "key": "s3",
+        "provider": "pixabay",
+        "id": 945348,
+        "url": "https://pixabay.com/photos/office-open-space-office-room-room-945348/",
+        "subject": "Empty office workstation; illustrative workplace.",
+        "subject_group": "office"
+      },
+      {
+        "key": "s4",
+        "provider": "pixabay",
+        "id": 805769,
+        "url": "https://pixabay.com/photos/business-man-man-portrait-male-805769/",
+        "subject": "Adult man seated at a desk; illustrative, not an employee of a named organization.",
+        "subject_group": "desk"
+      }
+    ]
+  },
+  "plan_sha256": "e448f6f0b95b771f7b81b29db59063c78eb8cf30d683d04fb76d2b2b28eea873",
+  "approval": {
+    "status": "preview",
+    "reviewer": "Source and fixed storyboard plan reviewed 2026-10-27; actual preview not yet approved",
+    "preview_run_id": null
+  }
+}

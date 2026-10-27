@@ -1,0 +1,159 @@
+{
+  "schema_version": 1,
+  "id": "brief-chronic-stress",
+  "channel": "psychology",
+  "review_until": "2027-01-25",
+  "plan": {
+    "script": {
+      "title": "Why Stress Is Not Always the Same Kind of Signal",
+      "description": "A general explanation of brief versus persistent stress using NIMH and CDC evidence, without diagnosing the illustrative adults.",
+      "topic": "Why Stress Is Not Always the Same Kind of Signal",
+      "why_us": "US-focused educational explanation from reviewed primary sources.",
+      "timely_basis": "Dated historical evidence or evergreen explanation; no claim of a current trend.",
+      "tags": [
+        "psychology",
+        "United States",
+        "explained"
+      ],
+      "scenes": [
+        {
+          "narration": "A deadline can motivate action, yet a stress response that persists is a different public health concern.",
+          "visual_query": "illustrative documentary context",
+          "archive_id": "",
+          "visual_id": "s1",
+          "diagram": null,
+          "source_ids": [
+            1,
+            2
+          ]
+        },
+        {
+          "narration": "NIMH describes stress as a response to an external cause, not automatically a sign of a mental disorder.",
+          "visual_query": "illustrative documentary context",
+          "archive_id": "",
+          "visual_id": "diagram-2",
+          "diagram": {
+            "kind": "comparison",
+            "title": "Stress is a response",
+            "labels": [
+              "External cause",
+              "Physical or mental response"
+            ],
+            "note": "An educational definition, not a personal diagnosis."
+          },
+          "source_ids": [
+            1
+          ]
+        },
+        {
+          "narration": "An external demand may occur once, last briefly, or keep returning over an extended period of time.",
+          "visual_query": "illustrative documentary context",
+          "archive_id": "",
+          "visual_id": "s2",
+          "diagram": null,
+          "source_ids": [
+            1
+          ]
+        },
+        {
+          "narration": "The CDC distinguishes occasional stress from chronic stress, which can contribute to worsening health problems over time.",
+          "visual_query": "illustrative documentary context",
+          "archive_id": "",
+          "visual_id": "s3",
+          "diagram": null,
+          "source_ids": [
+            2
+          ]
+        },
+        {
+          "narration": "Sleep and concentration can be affected, but these examples do not mean every stressed person has the same experience.",
+          "visual_query": "illustrative documentary context",
+          "archive_id": "",
+          "visual_id": "s4",
+          "diagram": null,
+          "source_ids": [
+            1,
+            2
+          ]
+        },
+        {
+          "narration": "The important difference is whether the demand and response resolve or persist; intensity alone is not the whole story.",
+          "visual_query": "illustrative documentary context",
+          "archive_id": "",
+          "visual_id": "diagram-6",
+          "diagram": {
+            "kind": "comparison",
+            "title": "Time and context matter",
+            "labels": [
+              "Occasional stress",
+              "Persistent stress"
+            ],
+            "note": "People respond differently; context matters."
+          },
+          "source_ids": [
+            1,
+            2
+          ]
+        }
+      ]
+    },
+    "sources": [
+      {
+        "id": 1,
+        "url": "https://www.nimh.nih.gov/health/publications/so-stressed-out-fact-sheet",
+        "title": "Reviewed primary-source evidence",
+        "content": "Stress is a physical or mental response to an external cause. A stressor can occur once, briefly, or repeatedly over time. Anxiety is a reaction to stress and can occur even without a current threat. Both can affect mind and body, with worry, tension and sleep problems among overlapping symptoms. Stress can be positive or negative, including motivation to meet a deadline or loss of sleep. These definitions are educational and do not diagnose a person.",
+        "published_date": null,
+        "evidence_kind": "editorial source summary; table rows are source data"
+      },
+      {
+        "id": 2,
+        "url": "https://www.cdc.gov/mental-health/living-with/index.html",
+        "title": "Reviewed primary-source evidence",
+        "content": "Everyone experiences occasional stress, a normal part of life. Stress is a physical and emotional response to new or challenging situations, including work, health and relationships. Stress may affect sleep, concentration and decision making. Long-term or chronic stress can worsen health problems. People respond differently; a single image or symptom does not establish a diagnosis.",
+        "published_date": null,
+        "evidence_kind": "editorial source summary; table rows are source data"
+      }
+    ],
+    "assets": [
+      {
+        "key": "s1",
+        "provider": "pixabay",
+        "id": 1280964,
+        "url": "https://pixabay.com/photos/happy-university-happy-students-1280964/",
+        "subject": "Adult woman at a desk with a laptop; illustrative, not a named participant.",
+        "subject_group": "laptop"
+      },
+      {
+        "key": "s2",
+        "provider": "pixabay",
+        "id": 805769,
+        "url": "https://pixabay.com/photos/business-man-man-portrait-male-805769/",
+        "subject": "Adult man seated at a desk; illustrative, not an employee of a named organization.",
+        "subject_group": "desk"
+      },
+      {
+        "key": "s3",
+        "provider": "pixabay",
+        "id": 7746011,
+        "url": "https://pixabay.com/photos/woman-business-office-thought-7746011/",
+        "subject": "Adult woman standing with arms crossed; illustrative, not a diagnosis or a named participant.",
+        "subject_group": "adult standing"
+      },
+      {
+        "key": "s4",
+        "provider": "pixabay",
+        "id": 945348,
+        "url": "https://pixabay.com/photos/office-open-space-office-room-room-945348/",
+        "subject": "Empty office workstation; illustrative workplace.",
+        "subject_group": "office"
+      }
+    ]
+  },
+  "plan_sha256": "ed6bc85e09f13e1c8c45fa544db53e7cd4f4921c19d03a5ce783fa73b8764ad3",
+  "approval": {
+    "status": "preview",
+    "reviewer": "Source and fixed storyboard plan reviewed 2026-10-27; actual preview not yet approved",
+    "preview_run_id": null
+  }
+}

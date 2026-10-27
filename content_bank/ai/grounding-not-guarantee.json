@@ -1,0 +1,160 @@
+{
+  "schema_version": 1,
+  "id": "grounding-not-guarantee",
+  "channel": "ai",
+  "review_until": "2027-01-25",
+  "plan": {
+    "script": {
+      "title": "Grounding Helps AI Answers but Is Not a Guarantee",
+      "description": "A source-grounded explanation of why connecting AI to documents still requires verification and evaluation.",
+      "topic": "Grounding Helps AI Answers but Is Not a Guarantee",
+      "why_us": "US-focused educational explanation from reviewed primary sources.",
+      "timely_basis": "Dated historical evidence or evergreen explanation; no claim of a current trend.",
+      "tags": [
+        "ai",
+        "United States",
+        "explained"
+      ],
+      "scenes": [
+        {
+          "narration": "Giving an AI system sources can improve factuality, but it does not turn every answer into a verified fact.",
+          "visual_query": "illustrative documentary context",
+          "archive_id": "",
+          "visual_id": "s1",
+          "diagram": null,
+          "source_ids": [
+            1,
+            2
+          ]
+        },
+        {
+          "narration": "Grounding connects generated answers to outside information; the system still has to represent that information accurately.",
+          "visual_query": "illustrative documentary context",
+          "archive_id": "",
+          "visual_id": "diagram-2",
+          "diagram": {
+            "kind": "process",
+            "title": "Grounding workflow",
+            "labels": [
+              "Source material",
+              "Generated answer",
+              "Evaluation"
+            ],
+            "note": "Grounding supports factuality; verification still matters."
+          },
+          "source_ids": [
+            2
+          ]
+        },
+        {
+          "narration": "NIST identifies confidently false content as a generative AI risk, including answers whose references or details are inaccurate.",
+          "visual_query": "illustrative documentary context",
+          "archive_id": "",
+          "visual_id": "s3",
+          "diagram": null,
+          "source_ids": [
+            1
+          ]
+        },
+        {
+          "narration": "A useful review therefore compares the actual claim with its supporting source, rather than judging only how professional it sounds.",
+          "visual_query": "illustrative documentary context",
+          "archive_id": "",
+          "visual_id": "s2",
+          "diagram": null,
+          "source_ids": [
+            1,
+            2
+          ]
+        },
+        {
+          "narration": "Application evaluation also matters because a system may behave differently across tasks, inputs, and the sources available to it.",
+          "visual_query": "illustrative documentary context",
+          "archive_id": "",
+          "visual_id": "s4",
+          "diagram": null,
+          "source_ids": [
+            2
+          ]
+        },
+        {
+          "narration": "Grounding is a useful safeguard, not a promise of perfection; supported claims and unsupported claims must still be distinguished.",
+          "visual_query": "illustrative documentary context",
+          "archive_id": "",
+          "visual_id": "diagram-6",
+          "diagram": {
+            "kind": "comparison",
+            "title": "Support is not certainty",
+            "labels": [
+              "Useful source connection",
+              "Remaining error risk"
+            ],
+            "note": "Evaluate the output, not only the presence of a citation."
+          },
+          "source_ids": [
+            1,
+            2
+          ]
+        }
+      ]
+    },
+    "sources": [
+      {
+        "id": 1,
+        "url": "https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.600-1.pdf",
+        "title": "Reviewed primary-source evidence",
+        "content": "NIST AI 600-1, July 2024, identifies confabulation: generative AI can confidently present erroneous or false content. Outputs can contain inaccurate information or false citations. Confident language is not proof of accuracy. Evaluation and verification of generated content are part of managing the risk; no model output should be treated as inherently verified.",
+        "published_date": null,
+        "evidence_kind": "editorial source summary; table rows are source data"
+      },
+      {
+        "id": 2,
+        "url": "https://ai.google.dev/gemini-api/docs/safety-guidance",
+        "title": "Reviewed primary-source evidence",
+        "content": "Generative AI can produce inaccurate or unexpected outputs. Post-processing and rigorous manual evaluation are important. Grounding with Google Search can improve factuality by connecting output to source information; it does not establish that every output is correct. Developers must evaluate applications rather than assume all generated output is reliable.",
+        "published_date": null,
+        "evidence_kind": "editorial source summary; table rows are source data"
+      }
+    ],
+    "assets": [
+      {
+        "key": "s1",
+        "provider": "pixabay",
+        "id": 1280964,
+        "url": "https://pixabay.com/photos/happy-university-happy-students-1280964/",
+        "subject": "Adult woman at a desk with a laptop; illustrative, not a named participant.",
+        "subject_group": "laptop"
+      },
+      {
+        "key": "s2",
+        "provider": "pixabay",
+        "id": 805769,
+        "url": "https://pixabay.com/photos/business-man-man-portrait-male-805769/",
+        "subject": "Adult man seated at a desk; illustrative, not an employee of a named organization.",
+        "subject_group": "desk"
+      },
+      {
+        "key": "s3",
+        "provider": "pixabay",
+        "id": 3859389,
+        "url": "https://pixabay.com/photos/files-archive-organization-3859389/",
+        "subject": "Open filing cabinets containing folders; illustrative documents.",
+        "subject_group": "files"
+      },
+      {
+        "key": "s4",
+        "provider": "pixabay",
+        "id": 945348,
+        "url": "https://pixabay.com/photos/office-open-space-office-room-room-945348/",
+        "subject": "Empty office workstation; illustrative workplace.",
+        "subject_group": "office"
+      }
+    ]
+  },
+  "plan_sha256": "761a0f5e31b15b0b94e60cee5b8a0b03f12e76c585a68bb0f8c1578028503f0e",
+  "approval": {
+    "status": "preview",
+    "reviewer": "Source and fixed storyboard plan reviewed 2026-10-27; actual preview not yet approved",
+    "preview_run_id": null
+  }
+}

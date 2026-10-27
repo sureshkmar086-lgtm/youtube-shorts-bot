@@ -1,0 +1,159 @@
+{
+  "schema_version": 1,
+  "id": "stress-anxiety-distinction",
+  "channel": "psychology",
+  "review_until": "2027-01-25",
+  "plan": {
+    "script": {
+      "title": "Stress and Anxiety Can Feel Similar but Differ",
+      "description": "A general educational distinction from NIMH and CDC. Illustrative adults are not diagnosed participants. This is not a personal diagnosis.",
+      "topic": "Stress and Anxiety Can Feel Similar but Differ",
+      "why_us": "US-focused educational explanation from reviewed primary sources.",
+      "timely_basis": "Dated historical evidence or evergreen explanation; no claim of a current trend.",
+      "tags": [
+        "psychology",
+        "United States",
+        "explained"
+      ],
+      "scenes": [
+        {
+          "narration": "Stress and anxiety can share symptoms, but the National Institute of Mental Health describes an important difference.",
+          "visual_query": "illustrative documentary context",
+          "archive_id": "",
+          "visual_id": "s1",
+          "diagram": null,
+          "source_ids": [
+            1
+          ]
+        },
+        {
+          "narration": "Stress generally responds to an external cause, which can happen briefly or repeat over a longer period.",
+          "visual_query": "illustrative documentary context",
+          "archive_id": "",
+          "visual_id": "diagram-2",
+          "diagram": {
+            "kind": "comparison",
+            "title": "Stress context",
+            "labels": [
+              "External cause",
+              "Brief or repeated"
+            ],
+            "note": "An external demand can trigger stress."
+          },
+          "source_ids": [
+            1
+          ]
+        },
+        {
+          "narration": "Work demands, health concerns, and relationship difficulties are examples of challenging situations described by American public health agencies.",
+          "visual_query": "illustrative documentary context",
+          "archive_id": "",
+          "visual_id": "s2",
+          "diagram": null,
+          "source_ids": [
+            1,
+            2
+          ]
+        },
+        {
+          "narration": "Anxiety can occur even when no current threat is present; it is not defined only by the immediate situation.",
+          "visual_query": "illustrative documentary context",
+          "archive_id": "",
+          "visual_id": "s3",
+          "diagram": null,
+          "source_ids": [
+            1
+          ]
+        },
+        {
+          "narration": "Worry, tension, sleep disruption, or trouble concentrating can overlap, so one visible reaction does not establish a diagnosis.",
+          "visual_query": "illustrative documentary context",
+          "archive_id": "",
+          "visual_id": "s4",
+          "diagram": null,
+          "source_ids": [
+            1,
+            2
+          ]
+        },
+        {
+          "narration": "The useful distinction is the context and persistence of the response, not a label assigned from somebody's photograph.",
+          "visual_query": "illustrative documentary context",
+          "archive_id": "",
+          "visual_id": "diagram-6",
+          "diagram": {
+            "kind": "comparison",
+            "title": "Similar symptoms, different context",
+            "labels": [
+              "External demands",
+              "Anxiety without current threat"
+            ],
+            "note": "General education; not a diagnosis from appearances."
+          },
+          "source_ids": [
+            1,
+            2
+          ]
+        }
+      ]
+    },
+    "sources": [
+      {
+        "id": 1,
+        "url": "https://www.nimh.nih.gov/health/publications/so-stressed-out-fact-sheet",
+        "title": "Reviewed primary-source evidence",
+        "content": "Stress is a physical or mental response to an external cause. A stressor can occur once, briefly, or repeatedly over time. Anxiety is a reaction to stress and can occur even without a current threat. Both can affect mind and body, with worry, tension and sleep problems among overlapping symptoms. Stress can be positive or negative, including motivation to meet a deadline or loss of sleep. These definitions are educational and do not diagnose a person.",
+        "published_date": null,
+        "evidence_kind": "editorial source summary; table rows are source data"
+      },
+      {
+        "id": 2,
+        "url": "https://www.cdc.gov/mental-health/living-with/index.html",
+        "title": "Reviewed primary-source evidence",
+        "content": "Everyone experiences occasional stress, a normal part of life. Stress is a physical and emotional response to new or challenging situations, including work, health and relationships. Stress may affect sleep, concentration and decision making. Long-term or chronic stress can worsen health problems. People respond differently; a single image or symptom does not establish a diagnosis.",
+        "published_date": null,
+        "evidence_kind": "editorial source summary; table rows are source data"
+      }
+    ],
+    "assets": [
+      {
+        "key": "s1",
+        "provider": "pixabay",
+        "id": 1280964,
+        "url": "https://pixabay.com/photos/happy-university-happy-students-1280964/",
+        "subject": "Adult woman at a desk with a laptop; illustrative, not a named participant.",
+        "subject_group": "laptop"
+      },
+      {
+        "key": "s2",
+        "provider": "pixabay",
+        "id": 805769,
+        "url": "https://pixabay.com/photos/business-man-man-portrait-male-805769/",
+        "subject": "Adult man seated at a desk; illustrative, not an employee of a named organization.",
+        "subject_group": "desk"
+      },
+      {
+        "key": "s3",
+        "provider": "pixabay",
+        "id": 7746011,
+        "url": "https://pixabay.com/photos/woman-business-office-thought-7746011/",
+        "subject": "Adult woman standing with arms crossed; illustrative, not a diagnosis or a named participant.",
+        "subject_group": "adult standing"
+      },
+      {
+        "key": "s4",
+        "provider": "pixabay",
+        "id": 945348,
+        "url": "https://pixabay.com/photos/office-open-space-office-room-room-945348/",
+        "subject": "Empty office workstation; illustrative workplace.",
+        "subject_group": "office"
+      }
+    ]
+  },
+  "plan_sha256": "ad9565f729826a6eb8e4f988615137ee140e7cd12c6120724f3c6a2804104276",
+  "approval": {
+    "status": "preview",
+    "reviewer": "Source and fixed storyboard plan reviewed 2026-10-27; actual preview not yet approved",
+    "preview_run_id": null
+  }
+}

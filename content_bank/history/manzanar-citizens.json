@@ -1,0 +1,200 @@
+{
+  "schema_version": 1,
+  "id": "manzanar-citizens",
+  "channel": "history",
+  "review_until": "2027-01-25",
+  "plan": {
+    "script": {
+      "title": "Manzanar Confined American Citizens Behind These Gates",
+      "description": "A historical explanation of citizenship, confinement and later redress at Manzanar. Photographs retain their documented wartime context.",
+      "topic": "Manzanar Confined American Citizens Behind These Gates",
+      "why_us": "US-focused educational explanation from reviewed primary sources.",
+      "timely_basis": "Dated historical evidence or evergreen explanation; no claim of a current trend.",
+      "tags": [
+        "history",
+        "United States",
+        "explained"
+      ],
+      "scenes": [
+        {
+          "narration": "Behind Manzanar's entrance, many of the people confined by the United States government were American citizens.",
+          "visual_query": "illustrative documentary context",
+          "archive_id": "a1",
+          "visual_id": "",
+          "diagram": null,
+          "source_ids": [
+            1,
+            2
+          ]
+        },
+        {
+          "narration": "For families on the West Coast, forced removal meant leaving homes and taking only what they could carry.",
+          "visual_query": "illustrative documentary context",
+          "archive_id": "",
+          "visual_id": "diagram-2",
+          "diagram": {
+            "kind": "process",
+            "title": "Forced removal",
+            "labels": [
+              "Leave homes",
+              "Restricted belongings",
+              "Confinement"
+            ],
+            "note": "Families faced government-imposed removal."
+          },
+          "source_ids": [
+            1,
+            2
+          ]
+        },
+        {
+          "narration": "Inside Manzanar, residents maintained religious services and community activities while living under confinement during the war.",
+          "visual_query": "illustrative documentary context",
+          "archive_id": "a8",
+          "visual_id": "",
+          "diagram": null,
+          "source_ids": [
+            2
+          ]
+        },
+        {
+          "narration": "This Ansel Adams photograph shows people loading a bus before leaving Manzanar for relocation, not arriving there.",
+          "visual_query": "illustrative documentary context",
+          "archive_id": "a9",
+          "visual_id": "",
+          "diagram": null,
+          "source_ids": [
+            3
+          ]
+        },
+        {
+          "narration": "Barracks life brought little privacy, winter cold, summer heat, and strong winds across California's Owens Valley.",
+          "visual_query": "illustrative documentary context",
+          "archive_id": "a4",
+          "visual_id": "",
+          "diagram": null,
+          "source_ids": [
+            2
+          ]
+        },
+        {
+          "narration": "The camp's housing area was enclosed by barbed wire and guard towers, according to National Park Service records.",
+          "visual_query": "illustrative documentary context",
+          "archive_id": "a11",
+          "visual_id": "",
+          "diagram": null,
+          "source_ids": [
+            2
+          ]
+        },
+        {
+          "narration": "Decades later, the Civil Liberties Act acknowledged the injustice with an apology and restitution for eligible survivors.",
+          "visual_query": "illustrative documentary context",
+          "archive_id": "",
+          "visual_id": "diagram-7",
+          "diagram": {
+            "kind": "comparison",
+            "title": "Later redress",
+            "labels": [
+              "Acknowledged injustice",
+              "Formal apology",
+              "Partial restitution"
+            ],
+            "note": "Later legislation addressed the wartime incarceration."
+          },
+          "source_ids": [
+            1
+          ]
+        }
+      ]
+    },
+    "sources": [
+      {
+        "id": 1,
+        "url": "https://www.archives.gov/milestone-documents/executive-order-9066",
+        "title": "Reviewed primary-source evidence",
+        "content": "Executive Order 9066 was issued by Franklin Roosevelt on February 19, 1942. It authorized exclusion from military areas and was followed by forced removal and incarceration of Japanese Americans, many of them American citizens. Families lost liberty, homes and property. In 1988 the Civil Liberties Act acknowledged the injustice, apologized and provided partial restitution to eligible surviving people who had been incarcerated.",
+        "published_date": null,
+        "evidence_kind": "editorial source summary; table rows are source data"
+      },
+      {
+        "id": 2,
+        "url": "https://www.nps.gov/manz/learn/historyculture/japanese-americans-at-manzanar.htm",
+        "title": "Reviewed primary-source evidence",
+        "content": "About two-thirds of people incarcerated at Manzanar were American citizens by birth. Families had days to settle their affairs and could take only what they carried. Manzanar housing was surrounded by barbed wire and guard towers. Barracks had little privacy; toilets, showers and mess halls were shared. Winter could be below freezing; summer heat and wind brought dust and sand. Residents established religious services, schools and community activities. Thousands were confined there. Activities did not remove the fact of confinement.",
+        "published_date": null,
+        "evidence_kind": "editorial source summary; table rows are source data"
+      },
+      {
+        "id": 3,
+        "url": "https://www.loc.gov/item/2002695976/",
+        "title": "Reviewed primary-source evidence",
+        "content": "Ansel Adams photograph, 1943: Loading bus, leaving Manzanar for relocation, Manzanar Relocation Center, California. It depicts departure FROM Manzanar, not initial arrival at a control station.",
+        "published_date": null,
+        "evidence_kind": "editorial source summary; table rows are source data"
+      }
+    ],
+    "assets": [
+      {
+        "key": "a1",
+        "provider": "loc",
+        "url": "https://www.loc.gov/item/2002695960/",
+        "catalogue_terms": [
+          "entrance",
+          "manzanar"
+        ],
+        "subject": "Entrance sign at Manzanar, 1943.",
+        "subject_group": "a1"
+      },
+      {
+        "key": "a8",
+        "provider": "loc",
+        "url": "https://www.loc.gov/item/2002697878/",
+        "catalogue_terms": [
+          "catholic church",
+          "manzanar"
+        ],
+        "subject": "Catholic church and religious life at Manzanar, 1943.",
+        "subject_group": "a8"
+      },
+      {
+        "key": "a9",
+        "provider": "loc",
+        "url": "https://www.loc.gov/item/2002695976/",
+        "catalogue_terms": [
+          "leaving manzanar"
+        ],
+        "subject": "People loading a bus before leaving Manzanar, 1943.",
+        "subject_group": "a9"
+      },
+      {
+        "key": "a4",
+        "provider": "loc",
+        "url": "https://www.loc.gov/item/2002695965/",
+        "catalogue_terms": [
+          "winter",
+          "manzanar"
+        ],
+        "subject": "Manzanar barracks and street in winter, 1943.",
+        "subject_group": "a4"
+      },
+      {
+        "key": "a11",
+        "provider": "loc",
+        "url": "https://www.loc.gov/item/2002695968/",
+        "catalogue_terms": [
+          "guard tower",
+          "manzanar"
+        ],
+        "subject": "Elevated view over Manzanar from a guard tower, 1943.",
+        "subject_group": "a11"
+      }
+    ]
+  },
+  "plan_sha256": "cf11a9e8ccfd81abd432edb0a98ef0790dece3e98d63cc27b4d28889e42f1021",
+  "approval": {
+    "status": "preview",
+    "reviewer": "Source and fixed storyboard plan reviewed 2026-10-27; actual preview not yet approved",
+    "preview_run_id": null
+  }
+}

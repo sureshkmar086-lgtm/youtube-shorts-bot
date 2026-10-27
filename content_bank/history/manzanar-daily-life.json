@@ -1,0 +1,199 @@
+{
+  "schema_version": 1,
+  "id": "manzanar-daily-life",
+  "channel": "history",
+  "review_until": "2027-01-25",
+  "plan": {
+    "script": {
+      "title": "Daily Life at Manzanar Did Not Mean Freedom",
+      "description": "Schools, worship and daily routines existed inside confinement. This account distinguishes departure photographs from forced arrival.",
+      "topic": "Daily Life at Manzanar Did Not Mean Freedom",
+      "why_us": "US-focused educational explanation from reviewed primary sources.",
+      "timely_basis": "Dated historical evidence or evergreen explanation; no claim of a current trend.",
+      "tags": [
+        "history",
+        "United States",
+        "explained"
+      ],
+      "scenes": [
+        {
+          "narration": "Manzanar was not an ordinary town: its residents lived inside a wartime camp surrounded by guarded boundaries.",
+          "visual_query": "illustrative documentary context",
+          "archive_id": "a1",
+          "visual_id": "",
+          "diagram": null,
+          "source_ids": [
+            1,
+            2
+          ]
+        },
+        {
+          "narration": "Families were assigned barracks rooms and shared toilets, showers, and mess halls, with little privacy inside the camp.",
+          "visual_query": "illustrative documentary context",
+          "archive_id": "",
+          "visual_id": "diagram-2",
+          "diagram": {
+            "kind": "comparison",
+            "title": "Shared facilities",
+            "labels": [
+              "Barracks rooms",
+              "Communal washing",
+              "Mess halls"
+            ],
+            "note": "Confinement shaped daily life and privacy."
+          },
+          "source_ids": [
+            2
+          ]
+        },
+        {
+          "narration": "Winter temperatures could fall below freezing, while wind carried dust and sand through the Owens Valley camp.",
+          "visual_query": "illustrative documentary context",
+          "archive_id": "a4",
+          "visual_id": "",
+          "diagram": null,
+          "source_ids": [
+            2
+          ]
+        },
+        {
+          "narration": "Residents nevertheless organized religious services and community routines, building parts of daily life within imposed restrictions.",
+          "visual_query": "illustrative documentary context",
+          "archive_id": "a8",
+          "visual_id": "",
+          "diagram": null,
+          "source_ids": [
+            2
+          ]
+        },
+        {
+          "narration": "Ansel Adams also photographed people loading baggage before leaving Manzanar for relocation during the war.",
+          "visual_query": "illustrative documentary context",
+          "archive_id": "a9",
+          "visual_id": "",
+          "diagram": null,
+          "source_ids": [
+            3
+          ]
+        },
+        {
+          "narration": "The elevated view records rows of barracks, part of the landscape where thousands of Japanese Americans were confined.",
+          "visual_query": "illustrative documentary context",
+          "archive_id": "a11",
+          "visual_id": "",
+          "diagram": null,
+          "source_ids": [
+            2
+          ]
+        },
+        {
+          "narration": "Schools and community activities did not erase confinement; ordinary routines existed alongside the loss of basic freedom.",
+          "visual_query": "illustrative documentary context",
+          "archive_id": "",
+          "visual_id": "diagram-7",
+          "diagram": {
+            "kind": "comparison",
+            "title": "Routines within confinement",
+            "labels": [
+              "Community activities",
+              "Restricted freedom"
+            ],
+            "note": "Daily routines did not make the incarceration voluntary."
+          },
+          "source_ids": [
+            1,
+            2
+          ]
+        }
+      ]
+    },
+    "sources": [
+      {
+        "id": 1,
+        "url": "https://www.archives.gov/milestone-documents/executive-order-9066",
+        "title": "Reviewed primary-source evidence",
+        "content": "Executive Order 9066 was issued by Franklin Roosevelt on February 19, 1942. It authorized exclusion from military areas and was followed by forced removal and incarceration of Japanese Americans, many of them American citizens. Families lost liberty, homes and property. In 1988 the Civil Liberties Act acknowledged the injustice, apologized and provided partial restitution to eligible surviving people who had been incarcerated.",
+        "published_date": null,
+        "evidence_kind": "editorial source summary; table rows are source data"
+      },
+      {
+        "id": 2,
+        "url": "https://www.nps.gov/manz/learn/historyculture/japanese-americans-at-manzanar.htm",
+        "title": "Reviewed primary-source evidence",
+        "content": "About two-thirds of people incarcerated at Manzanar were American citizens by birth. Families had days to settle their affairs and could take only what they carried. Manzanar housing was surrounded by barbed wire and guard towers. Barracks had little privacy; toilets, showers and mess halls were shared. Winter could be below freezing; summer heat and wind brought dust and sand. Residents established religious services, schools and community activities. Thousands were confined there. Activities did not remove the fact of confinement.",
+        "published_date": null,
+        "evidence_kind": "editorial source summary; table rows are source data"
+      },
+      {
+        "id": 3,
+        "url": "https://www.loc.gov/item/2002695976/",
+        "title": "Reviewed primary-source evidence",
+        "content": "Ansel Adams photograph, 1943: Loading bus, leaving Manzanar for relocation, Manzanar Relocation Center, California. It depicts departure FROM Manzanar, not initial arrival at a control station.",
+        "published_date": null,
+        "evidence_kind": "editorial source summary; table rows are source data"
+      }
+    ],
+    "assets": [
+      {
+        "key": "a1",
+        "provider": "loc",
+        "url": "https://www.loc.gov/item/2002695960/",
+        "catalogue_terms": [
+          "entrance",
+          "manzanar"
+        ],
+        "subject": "Entrance sign at Manzanar, 1943.",
+        "subject_group": "a1"
+      },
+      {
+        "key": "a8",
+        "provider": "loc",
+        "url": "https://www.loc.gov/item/2002697878/",
+        "catalogue_terms": [
+          "catholic church",
+          "manzanar"
+        ],
+        "subject": "Catholic church and religious life at Manzanar, 1943.",
+        "subject_group": "a8"
+      },
+      {
+        "key": "a9",
+        "provider": "loc",
+        "url": "https://www.loc.gov/item/2002695976/",
+        "catalogue_terms": [
+          "leaving manzanar"
+        ],
+        "subject": "People loading a bus before leaving Manzanar, 1943.",
+        "subject_group": "a9"
+      },
+      {
+        "key": "a4",
+        "provider": "loc",
+        "url": "https://www.loc.gov/item/2002695965/",
+        "catalogue_terms": [
+          "winter",
+          "manzanar"
+        ],
+        "subject": "Manzanar barracks and street in winter, 1943.",
+        "subject_group": "a4"
+      },
+      {
+        "key": "a11",
+        "provider": "loc",
+        "url": "https://www.loc.gov/item/2002695968/",
+        "catalogue_terms": [
+          "guard tower",
+          "manzanar"
+        ],
+        "subject": "Elevated view over Manzanar from a guard tower, 1943.",
+        "subject_group": "a11"
+      }
+    ]
+  },
+  "plan_sha256": "d7dbe947ba6597f50b53752ec198f21d117ba64fb77518d3ce36c77b8b8fe013",
+  "approval": {
+    "status": "preview",
+    "reviewer": "Source and fixed storyboard plan reviewed 2026-10-27; actual preview not yet approved",
+    "preview_run_id": null
+  }
+}
