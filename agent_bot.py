@@ -290,7 +290,7 @@ def generate(client, prompt, schema, audit=False):
                     continue
                 break
         last = failures[-1]
-        if not transient:
+        if not (transient or malformed):
             break
         if time.monotonic() - started >= 300:
             break

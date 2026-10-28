@@ -56,6 +56,14 @@ class ModelRecoveryTests(unittest.TestCase):
         self.assertIn('FORMAT REPAIR',second)
         self.assertIn('original evidence',second)
 
+    def test_persistent_invalid_json_can_fall_back_but_auth_still_cannot(self):
+        client=SimpleNamespace(models=SimpleNamespace(generate_content=Mock(side_effect=[
+            SimpleNamespace(text='{"queries":["desk"]}')]*3+[
+            SimpleNamespace(text='{"queries":["office desk","adult keyboard","home laptop"]}') ])))
+        with patch.dict(b.os.environ,{'GEMINI_MODEL':'primary','GEMINI_FALLBACK_MODEL':'backup'}), patch.object(b.time,'sleep'):
+            b.generate(client,'evidence',b.StockSearchRepair)
+        self.assertEqual([c.kwargs['model'] for c in client.models.generate_content.call_args_list],['primary']*3+['backup'])
+
     def test_auth_error_is_not_retried_or_hidden(self):
         client = SimpleNamespace(models=SimpleNamespace(generate_content=Mock(side_effect=APIError(403))))
         with patch.object(b.time, 'sleep') as sleep, self.assertRaises(RuntimeError):
