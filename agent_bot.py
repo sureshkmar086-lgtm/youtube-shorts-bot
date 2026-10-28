@@ -245,6 +245,7 @@ def generate(client, prompt, schema, audit=False):
     fallback = os.getenv('GEMINI_FALLBACK_MODEL', 'gemini-3.1-flash-lite').strip()
     models = list(dict.fromkeys(m for m in [primary, configured, fallback] if m))
     failures = []
+    request_contents = prompt
     started = time.monotonic()
     for model_index, model in enumerate(models):
         for attempt in range(3):
@@ -257,7 +258,7 @@ def generate(client, prompt, schema, audit=False):
                     timeout=max(1000, min(90000, int(remaining * 1000))),
                     retry_options=types.HttpRetryOptions(attempts=1))
                 response = client.models.generate_content(
-                    model=model, contents=prompt, config=config)
+                    model=model, contents=request_contents, config=config)
                 if not response.text:
                     raise ValueError('Empty response')
                 result = schema.model_validate_json(response.text)
@@ -267,6 +268,12 @@ def generate(client, prompt, schema, audit=False):
                 code = getattr(exc, 'code', None)
                 transient = code in [429, 500, 502, 503, 504] or isinstance(exc, (TimeoutError, ConnectionError, httpx.TransportError, requests.Timeout, requests.ConnectionError))
                 malformed = isinstance(exc, (ValidationError, json.JSONDecodeError, ValueError))
+                if malformed:
+                    details=exc.errors(include_input=False,include_url=False) if isinstance(exc,ValidationError) else [{'type':type(exc).__name__}]
+                    correction='FORMAT REPAIR: Previous output failed these exact schema constraints: '+json.dumps(details,default=str)[:6000]+'. Return the complete corrected JSON using only the original evidence; do not invent facts to meet length.'
+                    if schema.__name__=='CalendarScript' and 'response' in locals() and response.text:
+                        correction+=' Previous rejected JSON DATA: '+response.text[:22000]
+                    request_contents=[*prompt,correction] if isinstance(prompt,list) else prompt+'\n'+correction
                 failures.append(dict(model=model, exception_type=type(exc).__name__,
                     http_status=code if isinstance(code, int) else None, attempt=attempt + 1))
                 elapsed = time.monotonic() - started

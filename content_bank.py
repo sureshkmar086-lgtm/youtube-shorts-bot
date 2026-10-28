@@ -159,6 +159,11 @@ misleading dates/numbers/causation, missing populations or limitations, weak hoo
 Every material claim, title/description and every diagram label/note needs support. Cover EVERY scene with
 scene_numbers and valid source_ids. A generic stock photo is illustrative and never proves a research finding,
 diagnosis, statistic or identity. A historical photo must match its exact place, direction and phase.
+Evaluate ONLY claims actually stated in this script/diagram/title, not an unstated stronger claim.
+Do not reject because sources disagree on a detail the script omits (for example exact clock minutes).
+A statement that responders acted does not claim there was no confusion over authority.
+Issues must identify an actual material unsupported claim or editorial defect; do not put tentative
+internal reasoning, requests to check other facts, minor wording preferences, or harmless source variations in issues.
 passed requires every editorial flag true and no issues. Date-specific finance data is explicitly historical,
 not today's balance. Educational explanation is not individualized medical/financial advice.
 Required calendar focus (if set): ''' + str(item['plan'].get('required_focus','fixed source-backed plan')) + '''. Reject topic drift.

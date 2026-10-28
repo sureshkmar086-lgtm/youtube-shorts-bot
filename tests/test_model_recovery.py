@@ -45,6 +45,17 @@ class ModelRecoveryTests(unittest.TestCase):
         self.assertEqual(len(result.queries),3)
         self.assertEqual([c.kwargs['model'] for c in client.models.generate_content.call_args_list],['primary']*3+['backup'])
 
+    def test_schema_retry_includes_validation_feedback(self):
+        client=SimpleNamespace(models=SimpleNamespace(generate_content=Mock(side_effect=[
+            SimpleNamespace(text='{"queries":["desk"]}'),
+            SimpleNamespace(text='{"queries":["office desk","adult keyboard","home laptop"]}') ])))
+        with patch.object(b.time,'sleep'):
+            result=b.generate(client,'original evidence',b.StockSearchRepair)
+        self.assertEqual(len(result.queries),3)
+        second=client.models.generate_content.call_args_list[1].kwargs['contents']
+        self.assertIn('FORMAT REPAIR',second)
+        self.assertIn('original evidence',second)
+
     def test_auth_error_is_not_retried_or_hidden(self):
         client = SimpleNamespace(models=SimpleNamespace(generate_content=Mock(side_effect=APIError(403))))
         with patch.object(b.time, 'sleep') as sleep, self.assertRaises(RuntimeError):
