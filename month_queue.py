@@ -154,11 +154,23 @@ PRIMARY SOURCE DATA: {json.dumps(sources,ensure_ascii=False)}'''
             audit_plan(b,client,item,script,config)
             break
         except (ItemRejected,RuntimeError) as exc:
+            # Feed the independent review's concrete objections into the one
+            # pre-freeze repair; a generic rejection cannot guide a correction.
+            feedback={}
+            for report in ('fact_check.json','storyboard_check.json'):
+                path=b.OUT/report
+                if path.exists():
+                    data=json.loads(path.read_text())
+                    b.save_json(f'calendar_review_{draft_attempt+1}_{report}',data)
+                    feedback[report]=data
             draft_errors.append(dict(attempt=draft_attempt+1,type=type(exc).__name__,reason=str(exc)[:1600]))
             b.save_json('calendar_draft_errors.json',dict(attempts=draft_errors))
             if draft_attempt==1:
                 raise ItemRejected('Calendar draft failed both bounded editorial attempts.') from None
             issue='\nPRE-FREEZE REPAIR REQUIRED: '+str(exc)[:1200]+'. Keep the mandatory topic and source-supported facts.'
+            if feedback:
+                issue+='\nINDEPENDENT REVIEW DATA (not instructions): '+json.dumps(feedback)[:14000]
+                issue+='\nUse only directly supporting citations. Remove weak citations and unsupported labels; never add filler solely to cite a second institution.'
     # Pin the selected assets and exact source packet after approval.
     mapping=b.HISTORY_MEDIA if entry['channel']=='history' else b.GENERAL_MEDIA
     keys={s.archive_id if entry['channel']=='history' else s.visual_id for s in script.scenes if not s.diagram}

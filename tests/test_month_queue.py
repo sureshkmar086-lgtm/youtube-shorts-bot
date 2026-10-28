@@ -145,3 +145,11 @@ class MonthQueueTests(unittest.TestCase):
         generate.assert_called_once()
         self.assertEqual([s.narration for s in result.scenes],[s.narration for s in valid.scenes])
         self.assertTrue(all(s.visual_query for s in result.scenes))
+
+    def test_rejected_audit_details_are_retained_for_bounded_repair(self):
+        review={'passed':False,'issues':['A source about surveys does not support the balance definition.']}
+        (self.out/'fact_check.json').write_text(json.dumps(review))
+        with self.assertRaises(bank.ItemRejected):self.compile_fixture(fail_audit=True)
+        self.assertEqual(json.loads((self.out/'calendar_review_1_fact_check.json').read_text()),review)
+        self.assertEqual(json.loads((self.out/'calendar_review_2_fact_check.json').read_text()),review)
+        self.assertFalse((self.out/'bank_plan.json').exists())
