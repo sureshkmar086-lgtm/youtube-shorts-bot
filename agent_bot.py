@@ -388,7 +388,7 @@ subject, evidence, hook and scene archive_id/visual_id assignments. Never substi
 Validation error: {reason}
 Write six or seven scenes consistent with the supplied visual plan. Aim for
 105-125 spoken words TOTAL, leaving room below the hard 145-word limit.
-Count narration only, excluding metadata. Each scene must have 8-30 words.
+Count narration only, excluding metadata. Use SEVEN scenes of 16-19 narration words EACH (112-133 total). Count real space-separated words; eight words per scene is insufficient. Each scene must have 8-30 words.
 Use valid source_ids and at least TWO different source IDs across the script.
 Each scene needs a concrete visual_query of 2-5 stock search words.
 Title 35-80 characters, description under 500 characters, why_us nonempty.
