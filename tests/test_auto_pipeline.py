@@ -51,7 +51,7 @@ class AutoPipelineTests(unittest.TestCase):
         def plan(*args,**kwargs):
             b.save_json('script.json',{'candidate':kwargs['only_id']})
             return script,sources
-        with patch.dict(os.environ,{'CHANNEL_KEY':'psychology','MODE':'auto'}), patch.object(bank,'eligible_items',return_value=choices), patch.object(bank,'make_plan',side_effect=plan) as make, patch.object(b,'render',side_effect=render_effect) as render, patch.object(auto,'final_review',side_effect=review_effect) as review:
+        with patch('month_queue.due_entries',return_value=[]),patch.dict(os.environ,{'CHANNEL_KEY':'psychology','MODE':'auto'}), patch.object(bank,'eligible_items',return_value=choices), patch.object(bank,'make_plan',side_effect=plan) as make, patch.object(b,'render',side_effect=render_effect) as render, patch.object(auto,'final_review',side_effect=review_effect) as review:
             result=auto.generate_checked(b,None,b.CHANNELS['psychology'],'2026-10-27',[])
             return result,make,render,review
     def test_bad_final_frames_switch_to_next_fixed_plan(self):
@@ -152,7 +152,8 @@ class AutoPipelineTests(unittest.TestCase):
         from datetime import datetime
         from zoneinfo import ZoneInfo
         workflow=(Path(b.__file__).parent/'.github/workflows/daily_run.yml').read_text()
-        self.assertIn('- cron: \"0 19 * * *\"\n      timezone: \"America/New_York\"',workflow)
+        self.assertIn('- cron: \"0 18 * * *\"\n      timezone: \"America/New_York\"',workflow)
         event={'timezone':'America/New_York'}
         self.assertEqual(datetime(2026,10,27,19,tzinfo=ZoneInfo(event['timezone'])).astimezone(ZoneInfo('Asia/Kolkata')).strftime('%H:%M'),'04:30')
         self.assertEqual(datetime(2026,11,3,19,tzinfo=ZoneInfo(event['timezone'])).astimezone(ZoneInfo('Asia/Kolkata')).strftime('%H:%M'),'05:30')
+

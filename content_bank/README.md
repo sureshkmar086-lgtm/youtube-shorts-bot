@@ -1,3 +1,5 @@
+Monthly operation (28 October–26 November 2026) is documented in [MONTH_PLAN.md](../MONTH_PLAN.md) and [README.md](../README.md). The starter-bank/manual-review details below remain fallback behavior.
+
 # Fixed content bank
 
 Normal `render`/`upload` runs now select a fixed plan from this directory. They do
@@ -85,4 +87,5 @@ The OAuth refresh token must be authorized for `https://www.googleapis.com/auth/
 
 After reauthorization, manually select `all / release_existing` on main. This operates only on the four exact videos uploaded by run 40449573825, checks channel ownership and the content-bank marker, waits for processing if needed, and changes visibility without TTS, rendering or insertion. Already-public videos are skipped idempotently. `publication.json` includes sanitized HTTP status and API reason codes if publication fails. Platform restrictions can still prevent public visibility and are not bypassed.
 
-Daily production now starts at **19:00 America/New_York**, with timezone-aware GitHub scheduling. This is **04:30 IST the next day during EDT**, and **05:30 IST during EST**. It is a chosen initial Eastern-evening slot, not a claim of measured channel-specific optimal time. Videos become public after rendering, checks and processing; GitHub queues can delay starts. The schedule is not an exact 19:00 publication promise.
+Daily production now starts at **18:00 America/New_York**, targeting YouTube publication at **19:00 Eastern**, with timezone-aware GitHub scheduling. This is **04:30 IST the next day during EDT**, and **05:30 IST during EST**. It is a chosen initial Eastern-evening slot, not a claim of measured channel-specific optimal time. Videos become public after rendering, checks and processing; GitHub queues can delay starts. The schedule is not an exact 19:00 publication promise.
+

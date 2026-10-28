@@ -5,6 +5,7 @@ Voice: Deepgram Aura-2 with Nova-3 word alignment; optional explicit edge-tts.
 import asyncio
 import difflib
 import html
+import httpx
 import hashlib
 import json
 import logging
@@ -42,7 +43,7 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 W, H, FPS = 1080, 1920, 30
-RELEASE = '2026-10-27-scene-contact-review'
+RELEASE = '2026-10-27-month-queue-scheduled-publication'
 OUT = Path('output')
 LOG = logging.getLogger('shorts')
 HTTP = requests.Session()
@@ -244,6 +245,7 @@ def generate(client, prompt, schema, audit=False):
     fallback = os.getenv('GEMINI_FALLBACK_MODEL', 'gemini-3.1-flash-lite').strip()
     models = list(dict.fromkeys(m for m in [primary, configured, fallback] if m))
     failures = []
+    request_contents = prompt
     started = time.monotonic()
     for model_index, model in enumerate(models):
         for attempt in range(3):
@@ -256,7 +258,7 @@ def generate(client, prompt, schema, audit=False):
                     timeout=max(1000, min(90000, int(remaining * 1000))),
                     retry_options=types.HttpRetryOptions(attempts=1))
                 response = client.models.generate_content(
-                    model=model, contents=prompt, config=config)
+                    model=model, contents=request_contents, config=config)
                 if not response.text:
                     raise ValueError('Empty response')
                 result = schema.model_validate_json(response.text)
@@ -264,8 +266,14 @@ def generate(client, prompt, schema, audit=False):
                 return result
             except Exception as exc:
                 code = getattr(exc, 'code', None)
-                transient = code in [429, 500, 502, 503, 504] or isinstance(exc, (TimeoutError, ConnectionError))
+                transient = code in [429, 500, 502, 503, 504] or isinstance(exc, (TimeoutError, ConnectionError, httpx.TransportError, requests.Timeout, requests.ConnectionError))
                 malformed = isinstance(exc, (ValidationError, json.JSONDecodeError, ValueError))
+                if malformed:
+                    details=exc.errors(include_input=False,include_url=False) if isinstance(exc,ValidationError) else [{'type':type(exc).__name__}]
+                    correction='FORMAT REPAIR: Previous output failed these exact schema constraints: '+json.dumps(details,default=str)[:6000]+'. Return the complete corrected JSON using only the original evidence; do not invent facts to meet length.'
+                    if schema.__name__=='CalendarScript' and 'response' in locals() and response.text:
+                        correction+=' Previous rejected JSON DATA: '+response.text[:22000]
+                    request_contents=[*prompt,correction] if isinstance(prompt,list) else prompt+'\n'+correction
                 failures.append(dict(model=model, exception_type=type(exc).__name__,
                     http_status=code if isinstance(code, int) else None, attempt=attempt + 1))
                 elapsed = time.monotonic() - started
@@ -282,8 +290,7 @@ def generate(client, prompt, schema, audit=False):
                     continue
                 break
         last = failures[-1]
-        if (last['http_status'] not in [429, 500, 502, 503, 504]
-            and last['exception_type'] not in ['TimeoutError', 'ConnectionError']):
+        if not (transient or malformed):
             break
         if time.monotonic() - started >= 300:
             break
@@ -353,9 +360,11 @@ def script_visual_rules(finance=False, history=False):
             'supported explanation, never by deleting a required diagram object.')
 
 
-def ensure_valid_script(client, script, sources, finance=False, history=False, visual_context=''):
+def ensure_valid_script(client, script, sources, finance=False, history=False, visual_context='', canonicalizer=None, response_schema=None):
     # At most two format/length repairs. A repaired draft still needs fact-checking.
     for attempt in range(3):
+        if canonicalizer is not None:
+            script = canonicalizer(script)
         script = normalize_order_9066(script, sources)
         if finance:
             # Finance renders only inventory assets. Discard the unused duplicate
@@ -386,7 +395,7 @@ subject, evidence, hook and scene archive_id/visual_id assignments. Never substi
 Validation error: {reason}
 Write six or seven scenes consistent with the supplied visual plan. Aim for
 105-125 spoken words TOTAL, leaving room below the hard 145-word limit.
-Count narration only, excluding metadata. Each scene must have 8-30 words.
+Count narration only, excluding metadata. Use SEVEN scenes of 16-19 narration words EACH (112-133 total). Count real space-separated words; eight words per scene is insufficient. Each scene must have 8-30 words.
 Use valid source_ids and at least TWO different source IDs across the script.
 Each scene needs a concrete visual_query of 2-5 stock search words.
 Title 35-80 characters, description under 500 characters, why_us nonempty.
@@ -401,7 +410,7 @@ For format-only repair preserve the source-supported hook, payoff and meaning.
 Do not replace a specific opening with historical background to shorten it.
 DRAFT: {script.model_dump_json()}
 SOURCES: {json.dumps(sources, ensure_ascii=False)}
-""", Script)
+""", response_schema or Script)
     raise RuntimeError('Script validation did not finish.')
 
 
@@ -2197,7 +2206,7 @@ def scene_visuals(scene, used, index, duration, config, client, archive_topic=''
         return planned_explainer_visual(scene, duration, config)
     if config['niche'] == 'Dark History':
         return planned_history_visual(scene, duration)
-    if config['niche'] == 'Finance':
+    if config['niche'] == 'Finance' and config.get('visual_mode') != 'concept':
         return planned_finance_visual(scene, duration)
     return planned_general_visual(scene, duration)
 
@@ -2239,9 +2248,9 @@ def score(t):
 def render(script, config, client):
     if config['niche'] == 'Dark History':
         require_history_plan(script)
-    if config['niche'] == 'Finance':
+    if config['niche'] == 'Finance' and config.get('visual_mode') != 'concept':
         require_finance_plan(script)
-    if config['niche'] in {'Psychology', 'AI'}:
+    if config['niche'] in {'Psychology', 'AI'} or config.get('visual_mode') == 'concept':
         require_general_plan(script)
     used, credits, srt, scene_paths = set(), [], [], []
     elapsed = 0.0
@@ -2613,7 +2622,7 @@ def main():
     OUT = Path('output') / key
     OUT.mkdir(parents=True, exist_ok=True)
     mode = os.getenv('MODE') or 'preflight'
-    if mode not in {'preflight', 'status', 'render', 'publish', 'upload', 'auto', 'release_existing'}:
+    if mode not in {'preflight', 'status', 'render', 'publish', 'upload', 'auto', 'release_existing', 'resume_today'}:
         raise RuntimeError('Invalid MODE.')
     day = datetime.now(ZoneInfo('America/New_York')).date().isoformat()
     marker = f'Automation-ID: {day}'
@@ -2626,6 +2635,15 @@ def main():
     if mode in {'preflight', 'status'}:
         summary(f'{key}: preflight passed. No video generated or uploaded.')
         return
+    if mode == 'resume_today':
+        from auto_pipeline import resume_today
+        if not resume_today(sys.modules[__name__], yt, recent, marker):
+            summary(f'{key}: no existing upload for today to resume. No generation or upload.')
+        return
+    if mode == 'auto':
+        from auto_pipeline import resume_today
+        if resume_today(sys.modules[__name__], yt, recent, marker):
+            return
     if mode in {'upload', 'publish', 'auto'} and handle_existing_uploads(yt, recent, marker):
         return
     if mode == 'publish':
@@ -2637,7 +2655,9 @@ def main():
     if not history.get('history_complete'):
         raise RuntimeError('Upload history is incomplete; cannot safely choose an unused bank item.')
     from content_bank import BankEmpty, eligible_items, make_plan
-    if not eligible_items(key, day, recent, mode):
+    from month_queue import due_entries
+    queued = due_entries(key, day, recent) if mode == 'auto' else []
+    if not queued and not eligible_items(key, day, recent, mode):
         try:
             make_plan(sys.modules[__name__], None, config, day, recent)
         except BankEmpty as exc:
@@ -2651,6 +2671,8 @@ def main():
         required('DEEPGRAM_API_KEY')
     elif provider != 'edge':
         raise RuntimeError('TTS_PROVIDER must be deepgram or edge.')
+    if queued:
+        required('TAVILY_API_KEY')
     if mode == 'auto':
         from auto_pipeline import generate_checked, publish_checked
         with genai.Client(api_key=required('GEMINI_API_KEY'),
@@ -2665,7 +2687,9 @@ def main():
         if handle_existing_uploads(yt, recent_uploads(yt), marker):
             return
         video_id = publish_checked(sys.modules[__name__], yt, body)
-        summary(f'{key}: FINAL CHECKS PASSED; YouTube processing succeeded; PUBLIC: https://www.youtube.com/watch?v={video_id}')
+        publication = json.loads((OUT/'publication.json').read_text())
+        state = publication.get('state','unknown')
+        summary(f'{key}: FINAL CHECKS PASSED; publication={state}; target={publication.get("publish_at","now")}; https://www.youtube.com/watch?v={video_id}')
         return
     with genai.Client(api_key=required('GEMINI_API_KEY'),
                       http_options=types.HttpOptions(timeout=120000)) as client:
@@ -2893,4 +2917,5 @@ if __name__ == '__main__':
         save_json('error.json', dict(type=type(exc).__name__, message=message))
         summary(f'Pipeline stopped ({type(exc).__name__}): {message}')
         raise SystemExit(1)
+
 

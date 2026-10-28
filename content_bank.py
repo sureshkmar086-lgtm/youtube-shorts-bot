@@ -159,13 +159,19 @@ misleading dates/numbers/causation, missing populations or limitations, weak hoo
 Every material claim, title/description and every diagram label/note needs support. Cover EVERY scene with
 scene_numbers and valid source_ids. A generic stock photo is illustrative and never proves a research finding,
 diagnosis, statistic or identity. A historical photo must match its exact place, direction and phase.
+Evaluate ONLY claims actually stated in this script/diagram/title, not an unstated stronger claim.
+Do not reject because sources disagree on a detail the script omits (for example exact clock minutes).
+A statement that responders acted does not claim there was no confusion over authority.
+Issues must identify an actual material unsupported claim or editorial defect; do not put tentative
+internal reasoning, requests to check other facts, minor wording preferences, or harmless source variations in issues.
 passed requires every editorial flag true and no issues. Date-specific finance data is explicitly historical,
 not today's balance. Educational explanation is not individualized medical/financial advice.
+Required calendar focus (if set): ''' + str(item['plan'].get('required_focus','fixed source-backed plan')) + '''. Reject topic drift.
 SCRIPT: ''' + script.model_dump_json() + '\nSOURCES: ' + json.dumps(sources), b.Audit, audit=True)
     b.save_json('fact_check.json', audit.model_dump())
     if not b.audit_passes(audit, sources, len(script.scenes)) or b.script_editorial_issues(script):
         raise ItemRejected('Fixed bank plan did not pass factual/editorial review; it was not rewritten.')
-    if item['channel'] == 'finance':
+    if item['channel'] == 'finance' and config.get('visual_mode') != 'concept':
         issues = b.finance_numeric_issues(script, sources)
         b.save_json('numeric_check.json', dict(passed=not issues, issues=issues))
         if issues:
@@ -174,6 +180,12 @@ SCRIPT: ''' + script.model_dump_json() + '\nSOURCES: ' + json.dumps(sources), b.
     elif item['channel'] == 'history':
         issues = b.check_history_storyboard(client, script, 0)
     else:
+        if item['channel'] == 'finance':
+            numeric = b.finance_numeric_issues(script, sources)
+            b.save_json('numeric_check.json', dict(passed=not numeric, issues=numeric, visual_mode='concept'))
+            b.save_json('finance_graphics.json', dict(graphics=[], builder='source_supported_concept_diagrams_no_numeric_data'))
+            if numeric:
+                raise ItemRejected('Unsupported finance numbers in conceptual explanation.')
         issues = b.check_general_storyboard(client, script, config, 0)
     if issues:
         raise ItemRejected('Fixed bank storyboard did not pass: ' + '; '.join(issues))
@@ -259,3 +271,4 @@ def verify_approved_preview(key, directory, root=ROOT):
         raise RuntimeError('Preview photos do not match the reviewed bank assets.')
     if json.loads((directory / 'script.json').read_text()) != item['plan']['script']:
         raise RuntimeError('Preview script does not match the fixed bank plan.')
+
