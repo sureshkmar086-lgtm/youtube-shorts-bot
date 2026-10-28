@@ -117,3 +117,31 @@ class MonthQueueTests(unittest.TestCase):
         script=(ROOT/'tools/preview_month.py').read_text()
         self.assertNotIn('youtube_client(',script)
         self.assertNotIn('publish_checked(',script)
+
+    def test_layout_correction_preserves_all_narrated_claims_and_photo_ids(self):
+        item=json.loads((ROOT/'content_bank/ai/confident-ai-errors.json').read_text())
+        script=b.Script.model_validate(item['plan']['script'])
+        narration=[x.narration for x in script.scenes]
+        photos=[x.visual_id for x in script.scenes if not x.diagram]
+        for scene in script.scenes:
+            scene.visual_query=''
+            if scene.diagram:scene.visual_id='wrong-id';scene.archive_id='a99'
+        result=month.canonicalize_layout(script,{'topic':'AI token units','archive_query':None})
+        self.assertEqual([x.narration for x in result.scenes],narration)
+        self.assertEqual([x.visual_id for x in result.scenes if not x.diagram],photos)
+        self.assertTrue(all(x.visual_query for x in result.scenes))
+        for i,scene in enumerate(result.scenes,1):
+            if scene.diagram:self.assertEqual((scene.visual_id,scene.archive_id),(f'diagram-{i}',''))
+
+    def test_format_repair_applies_layout_fix_to_each_returned_draft(self):
+        item=json.loads((ROOT/'content_bank/ai/confident-ai-errors.json').read_text())
+        valid=b.Script.model_validate(item['plan']['script']);invalid=valid.model_copy(deep=True);invalid.title='bad'
+        repaired=valid.model_copy(deep=True)
+        for scene in repaired.scenes:
+            scene.visual_query=''
+            if scene.diagram:scene.visual_id='invalid'
+        with patch.object(b,'generate',return_value=repaired) as generate:
+            result=b.ensure_valid_script(None,invalid,item['plan']['sources'],canonicalizer=lambda draft:month.canonicalize_layout(draft,{'topic':'AI tokens'}))
+        generate.assert_called_once()
+        self.assertEqual([s.narration for s in result.scenes],[s.narration for s in valid.scenes])
+        self.assertTrue(all(s.visual_query for s in result.scenes))

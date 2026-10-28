@@ -5,6 +5,7 @@ media, speech and final-video gates before publication.
 """
 import hashlib
 import json
+import re
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -74,6 +75,18 @@ def collect_sources(b, entry, config):
     return sources
 
 
+def canonicalize_layout(script, entry):
+    """Repair bookkeeping only; never change narration or photo assignments."""
+    fallback=' '.join(re.findall(r'[A-Za-z]+',entry.get('archive_query') or entry['topic'])[:4])
+    for i,scene in enumerate(script.scenes,1):
+        if scene.diagram:
+            scene.visual_id=f'diagram-{i}'
+            scene.archive_id=''
+        if not scene.visual_query.strip():
+            scene.visual_query=fallback
+    return script
+
+
 def compile_entry(b, client, config, day, recent, entry):
     """Research/draft/repair before freezing. Never mutate a reviewed script."""
     from content_bank import audit_plan
@@ -105,6 +118,10 @@ Use at least two source IDs; every scene and diagram title/label/note must be su
 Diagram IDs are diagram-N where N is the one-based scene number; complete kind/title/labels/note required.
 Concept diagrams contain no numbers, dollar signs or percentages and cannot be fake data charts.
 History: exact photo place, phase and travel direction; aftermath is not active destruction; non-graphic.
+A source mentioning a tent camp or breadline does NOT make a ruin photograph depict that camp or breadline.
+For photo scenes, narrate only what the approved visible context and catalogue can honestly illustrate.
+Put important facts without matching photos in the TWO concept diagrams, or choose a narrower coherent angle.
+Never make a photograph serve as proof of an invisible event, policy or precise numerical measurement.
 Psychology: study limits/populations matter; no diagnosis, personal treatment, or universal causal claims.
 Finance: explain THIS consumer-finance mechanism with conditions, without dollar amounts, rates, percentages,
 examples of returns, recommendations or current market claims. No fabricated numeric graphs.
@@ -121,8 +138,9 @@ PRIMARY SOURCE DATA: {json.dumps(sources,ensure_ascii=False)}'''
     for draft_attempt in range(2):
         try:
             script=b.generate(client,prompt+issue,b.Script)
+            script=canonicalize_layout(script,entry)
             b.save_json(f'calendar_draft_{draft_attempt+1}.json',script.model_dump())
-            script=b.ensure_valid_script(client,script,sources,finance=False,history=entry['channel']=='history',visual_context=visual)
+            script=b.ensure_valid_script(client,script,sources,finance=False,history=entry['channel']=='history',visual_context=visual,canonicalizer=lambda draft:canonicalize_layout(draft,entry))
             b.validate_script(script,sources)
             used={sid for scene in script.scenes for sid in scene.source_ids}
             roots={'.'.join(urlsplit(src['url']).hostname.split('.')[-2:]) for src in sources if src['id'] in used}

@@ -353,9 +353,11 @@ def script_visual_rules(finance=False, history=False):
             'supported explanation, never by deleting a required diagram object.')
 
 
-def ensure_valid_script(client, script, sources, finance=False, history=False, visual_context=''):
+def ensure_valid_script(client, script, sources, finance=False, history=False, visual_context='', canonicalizer=None):
     # At most two format/length repairs. A repaired draft still needs fact-checking.
     for attempt in range(3):
+        if canonicalizer is not None:
+            script = canonicalizer(script)
         script = normalize_order_9066(script, sources)
         if finance:
             # Finance renders only inventory assets. Discard the unused duplicate
