@@ -5,6 +5,7 @@ Voice: Deepgram Aura-2 with Nova-3 word alignment; optional explicit edge-tts.
 import asyncio
 import difflib
 import html
+import httpx
 import hashlib
 import json
 import logging
@@ -264,7 +265,7 @@ def generate(client, prompt, schema, audit=False):
                 return result
             except Exception as exc:
                 code = getattr(exc, 'code', None)
-                transient = code in [429, 500, 502, 503, 504] or isinstance(exc, (TimeoutError, ConnectionError))
+                transient = code in [429, 500, 502, 503, 504] or isinstance(exc, (TimeoutError, ConnectionError, httpx.TransportError, requests.Timeout, requests.ConnectionError))
                 malformed = isinstance(exc, (ValidationError, json.JSONDecodeError, ValueError))
                 failures.append(dict(model=model, exception_type=type(exc).__name__,
                     http_status=code if isinstance(code, int) else None, attempt=attempt + 1))
@@ -282,8 +283,7 @@ def generate(client, prompt, schema, audit=False):
                     continue
                 break
         last = failures[-1]
-        if (last['http_status'] not in [429, 500, 502, 503, 504]
-            and last['exception_type'] not in ['TimeoutError', 'ConnectionError']):
+        if not transient:
             break
         if time.monotonic() - started >= 300:
             break
@@ -353,7 +353,7 @@ def script_visual_rules(finance=False, history=False):
             'supported explanation, never by deleting a required diagram object.')
 
 
-def ensure_valid_script(client, script, sources, finance=False, history=False, visual_context='', canonicalizer=None):
+def ensure_valid_script(client, script, sources, finance=False, history=False, visual_context='', canonicalizer=None, response_schema=None):
     # At most two format/length repairs. A repaired draft still needs fact-checking.
     for attempt in range(3):
         if canonicalizer is not None:
@@ -403,7 +403,7 @@ For format-only repair preserve the source-supported hook, payoff and meaning.
 Do not replace a specific opening with historical background to shorten it.
 DRAFT: {script.model_dump_json()}
 SOURCES: {json.dumps(sources, ensure_ascii=False)}
-""", Script)
+""", response_schema or Script)
     raise RuntimeError('Script validation did not finish.')
 
 

@@ -37,6 +37,14 @@ class ModelRecoveryTests(unittest.TestCase):
         self.assertEqual([c.args[0] for c in sleep.call_args_list], [15, 30])
         self.assertTrue(all(c.kwargs['config'].response_schema == b.StockSearchRepair for c in calls))
 
+    def test_httpx_read_timeout_retries_and_uses_fallback(self):
+        client = SimpleNamespace(models=SimpleNamespace(generate_content=Mock(
+            side_effect=[b.httpx.ReadTimeout('provider timed out')] * 3 + [SimpleNamespace(text='{"queries":["office desk","adult keyboard","home laptop"]}')])))
+        with patch.dict(b.os.environ, {'GEMINI_MODEL':'primary','GEMINI_FALLBACK_MODEL':'backup'}), patch.object(b.time,'sleep'):
+            result=b.generate(client,'evidence',b.StockSearchRepair)
+        self.assertEqual(len(result.queries),3)
+        self.assertEqual([c.kwargs['model'] for c in client.models.generate_content.call_args_list],['primary']*3+['backup'])
+
     def test_auth_error_is_not_retried_or_hidden(self):
         client = SimpleNamespace(models=SimpleNamespace(generate_content=Mock(side_effect=APIError(403))))
         with patch.object(b.time, 'sleep') as sleep, self.assertRaises(RuntimeError):
@@ -73,4 +81,5 @@ class ModelRecoveryTests(unittest.TestCase):
             result = b.ensure_valid_script(None, script, [], finance=True)
         self.assertTrue(all(s.diagram is None for s in result.scenes))
         self.assertEqual([s.narration for s in result.scenes], original)
+
 

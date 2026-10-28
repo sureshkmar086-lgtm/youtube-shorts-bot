@@ -10,6 +10,7 @@ from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
+from pydantic import Field, create_model
 from content_bank import ItemRejected, plan_hash, script_hash
 
 CALENDAR=Path(__file__).resolve().parent/'calendar/month.json'
@@ -90,6 +91,10 @@ def canonicalize_layout(script, entry):
 def compile_entry(b, client, config, day, recent, entry):
     """Research/draft/repair before freezing. Never mutate a reviewed script."""
     from content_bank import audit_plan
+    # Put the narration budget in the API schema as well as the prompt.
+    # Seven reasonably sized scenes avoid repeated 76-88 word drafts.
+    scene_schema=create_model('CalendarScene',__base__=b.Scene,narration=(str,Field(min_length=110,max_length=210,description='16-19 spoken English words; only source-supported facts')))
+    script_schema=create_model('CalendarScript',__base__=b.Script,scenes=(list[scene_schema],Field(min_length=7,max_length=7)))
     if entry['date']>day or entry['channel']!=b.required('CHANNEL_KEY'):
         raise ItemRejected('Calendar channel/date mismatch.')
     config['visual_mode']='concept' if entry['channel']=='finance' else 'standard'
@@ -137,10 +142,10 @@ PRIMARY SOURCE DATA: {json.dumps(sources,ensure_ascii=False)}'''
     issue='';draft_errors=[];script=None
     for draft_attempt in range(2):
         try:
-            script=b.generate(client,prompt+issue,b.Script)
+            script=b.generate(client,prompt+issue,script_schema)
             script=canonicalize_layout(script,entry)
             b.save_json(f'calendar_draft_{draft_attempt+1}.json',script.model_dump())
-            script=b.ensure_valid_script(client,script,sources,finance=False,history=entry['channel']=='history',visual_context=visual,canonicalizer=lambda draft:canonicalize_layout(draft,entry))
+            script=b.ensure_valid_script(client,script,sources,finance=False,history=entry['channel']=='history',visual_context=visual,canonicalizer=lambda draft:canonicalize_layout(draft,entry),response_schema=script_schema)
             b.validate_script(script,sources)
             used={sid for scene in script.scenes for sid in scene.source_ids}
             roots={'.'.join(urlsplit(src['url']).hostname.split('.')[-2:]) for src in sources if src['id'] in used}
